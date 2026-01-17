@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E-Commerce Seller Fees & Profit Calculator</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { midnight: '#0f172a', card: '#ffffff' },
+            fontFamily: { sans: ['Inter', 'sans-serif'], header: ['Montserrat', 'sans-serif'] },
+            boxShadow: { 'finance': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }
+          },
+        },
+      }
+    </script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+      body { background-color: #0f172a; -webkit-font-smoothing: antialiased; }
+      [x-cloak] { display: none !important; }
+    </style>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen w-full flex flex-col items-center px-4 py-8 md:py-12 text-slate-800">
+
+    <div x-data="profitCalculator()" class="w-full max-w-[600px] flex flex-col items-center relative z-10">
+
+        <header class="mb-10 text-center">
+            <h1 class="font-header text-3xl font-bold text-white mb-2">E-Commerce Seller Fees & Profit Calculator</h1>
+            <p class="text-slate-400 text-xs uppercase tracking-widest">Professional Profit Analysis</p>
+        </header>
+
+        <main class="w-full bg-white rounded-2xl shadow-finance overflow-hidden p-6 md:p-8 space-y-6">
+            
+            <div class="flex justify-end mb-4">
+                <div class="bg-slate-100 p-1 rounded-lg flex border border-slate-200">
+                    <button @click="currency = 'GBP'" :class="currency === 'GBP' ? 'bg-white shadow text-slate-900' : 'text-slate-500'" class="px-3 py-1 text-xs font-bold rounded transition-all">GBP (£)</button>
+                    <button @click="currency = 'USD'" :class="currency === 'USD' ? 'bg-white shadow text-slate-900' : 'text-slate-500'" class="px-3 py-1 text-xs font-bold rounded transition-all">USD ($)</button>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Platform</label>
+                    <select x-model="platform" class="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm rounded-xl py-3 px-4 mt-1 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="EBAY">eBay UK</option>
+                        <option value="ETSY">Etsy UK</option>
+                        <option value="VINTED">Vinted</option>
+                        <option value="SHOPIFY">Shopify</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Seller Profile</label>
+                    <div class="bg-slate-100 p-1 rounded-xl flex mt-1">
+                        <button @click="sellerType = 'BUSINESS'" :class="sellerType === 'BUSINESS' ? 'bg-white shadow' : 'text-slate-500'" class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all">Business</button>
+                        <button @click="sellerType = 'PRIVATE'" :class="sellerType === 'PRIVATE' ? 'bg-white shadow' : 'text-slate-500'" class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all">Private (0% Fees)</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase">Sold Price</label>
+                        <input x-model="soldPrice" type="number" placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 font-semibold rounded-lg py-3 px-3 mt-1 text-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase">Cost</label>
+                        <input x-model="costPrice" type="number" placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 font-semibold rounded-lg py-3 px-3 mt-1 text-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase">Postage</label>
+                        <input x-model="postage" type="number" placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 font-semibold rounded-lg py-3 px-3 mt-1 text-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Total Fees</span>
+                    <span class="font-bold text-slate-700" x-text="formatMoney(results.fees)"></span>
+                </div>
+                <div class="flex justify-between mb-4">
+                    <span class="text-xs font-bold text-slate-400 uppercase">VAT</span>
+                    <span class="font-bold text-slate-700" x-text="formatMoney(results.vat)"></span>
+                </div>
+                <div class="border-t border-slate-200 pt-4 flex justify-between items-end">
+                    <span class="font-bold text-xl text-slate-800">Net Profit</span>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-emerald-600" x-text="formatMoney(results.profit)"></div>
+                        <div class="text-xs font-bold text-emerald-500" x-text="results.margin.toFixed(2) + '% Margin'"></div>
+                    </div>
+                </div>
+            </div>
+            
+             <button @click="reset()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/30">
+                Reset Calculator
+            </button>
+            
+        </main>
+        
+        <footer class="mt-8 text-slate-500 text-xs text-center opacity-60">
+            © 2026 Compliance Logbook. Data effective Jan 2026.
+        </footer>
+    </div>
+
+    <script>
+        function profitCalculator() {
+            return {
+                platform: 'EBAY', sellerType: 'PRIVATE', currency: 'GBP',
+                soldPrice: '', costPrice: '', postage: '',
+
+                get results() {
+                    const s = parseFloat(this.soldPrice)||0, c = parseFloat(this.costPrice)||0, p = parseFloat(this.postage)||0;
+                    let fees = 0, total = s + p;
+
+                    if (this.platform === 'EBAY') fees = (this.sellerType === 'BUSINESS') ? (total * 0.129 + 0.30) : 0;
+                    if (this.platform === 'ETSY') fees = (total * 0.105) + 0.40;
+                    if (this.platform === 'SHOPIFY') fees = (total * 0.02) + 0.25;
+                    
+                    let vat = (this.sellerType === 'BUSINESS') ? (fees * 0.20) : 0; // Simplified VAT logic
+                    let profit = s - c - p - fees - vat;
+                    return { fees, vat, profit, margin: s > 0 ? (profit/s)*100 : 0 };
+                },
+                formatMoney(v) { return new Intl.NumberFormat(this.currency === 'GBP' ? 'en-GB' : 'en-US', { style: 'currency', currency: this.currency }).format(v); },
+                reset() { this.soldPrice = ''; this.costPrice = ''; this.postage = ''; }
+            }
+        }
+    </script>
+</body>
+</html>
