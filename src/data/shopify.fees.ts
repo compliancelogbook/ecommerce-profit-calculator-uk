@@ -3,7 +3,13 @@ import type { SourceRef } from './types';
 export type ShopifyPlan = 'BASIC' | 'GROW' | 'ADVANCED';
 export type ShopifyPaymentProcessor = 'SHOPIFY_PAYMENTS' | 'THIRD_PARTY';
 
+const SHOPIFY_META = { platform: 'SHOPIFY', sellerMarket: 'GB', currency: 'GBP' } as const;
+
 export const SHOPIFY_SOURCE: SourceRef = {
+  ...SHOPIFY_META,
+  feeType: 'subscription',
+  formula: 'Fixed monthly plan fee',
+  effectiveDate: null,
   url: 'https://www.shopify.com/uk/pricing',
   verifiedAt: '2026-08-16',
   verificationStatus: 'SPEC_VERIFIED',
@@ -47,3 +53,43 @@ export const SHOPIFY_PLANS: Record<ShopifyPlan, ShopifyPlanConfig> = {
     thirdPartyTransactionFeeRate: 0.006,
   },
 };
+
+export function shopifyCardSource(plan: ShopifyPlanConfig, cardType: 'STANDARD' | 'INTERNATIONAL_AMEX'): SourceRef {
+  const rates = cardType === 'INTERNATIONAL_AMEX' ? plan.internationalCard : plan.standardCard;
+  return {
+    ...SHOPIFY_META,
+    feeType: 'payment_processing_fee',
+    formula: `${(rates.rate * 100).toFixed(1)}% + £${rates.fixed.toFixed(2)} per transaction`,
+    conditions: `${plan.label} plan, Shopify Payments, ${cardType === 'INTERNATIONAL_AMEX' ? 'international card / Amex' : 'standard UK card'}`,
+    effectiveDate: null,
+    url: SHOPIFY_SOURCE.url,
+    verifiedAt: SHOPIFY_SOURCE.verifiedAt,
+    verificationStatus: SHOPIFY_SOURCE.verificationStatus,
+  };
+}
+
+export function shopifyThirdPartySource(plan: ShopifyPlanConfig): SourceRef {
+  return {
+    ...SHOPIFY_META,
+    feeType: 'transaction_fee',
+    formula: `${(plan.thirdPartyTransactionFeeRate * 100).toFixed(1)}% of order total`,
+    conditions: `${plan.label} plan, third-party payment provider`,
+    effectiveDate: null,
+    url: SHOPIFY_SOURCE.url,
+    verifiedAt: SHOPIFY_SOURCE.verifiedAt,
+    verificationStatus: SHOPIFY_SOURCE.verificationStatus,
+  };
+}
+
+export function shopifySubscriptionSource(plan: ShopifyPlanConfig): SourceRef {
+  return {
+    ...SHOPIFY_META,
+    feeType: 'subscription',
+    formula: `£${plan.monthlySubscription}/month`,
+    conditions: `${plan.label} plan`,
+    effectiveDate: null,
+    url: SHOPIFY_SOURCE.url,
+    verifiedAt: SHOPIFY_SOURCE.verifiedAt,
+    verificationStatus: SHOPIFY_SOURCE.verificationStatus,
+  };
+}

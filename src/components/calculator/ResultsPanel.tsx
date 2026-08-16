@@ -2,6 +2,7 @@
 
 import { formatGBP, formatGBPRaw } from '../../lib/format';
 import type { CalculationResult, ConfidenceLevel } from '../../lib/types';
+import { allLinesVerifiedAsOf } from '../../lib/verification';
 
 const CONFIDENCE_COPY: Record<ConfidenceLevel, { label: string; className: string }> = {
   EXACT_FOR_SELECTED_INPUTS: { label: 'Exact for selected inputs', className: 'bg-[#0a2a12] text-[#4ade80] border-[#1f5c33]' },
@@ -12,8 +13,25 @@ const CONFIDENCE_COPY: Record<ConfidenceLevel, { label: string; className: strin
 const VERIFIED_DATE_DISPLAY = '16 August 2026';
 const VERIFIED_DATE_ISO = '2026-08-16';
 
-export default function ResultsPanel({ result }: { result: CalculationResult }) {
-  const hasVerifiedLine = result.feeLines.some((l) => l.verifiedAt === VERIFIED_DATE_ISO);
+export default function ResultsPanel({ result, blockingError }: { result: CalculationResult | null; blockingError?: string | null }) {
+  if (!result) {
+    return (
+      <div className="sticky top-0 p-6 lg:p-10">
+        <div className="flex items-center space-x-2 mb-8">
+          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+          <h3 className="text-sm font-semibold text-[#888] tracking-widest uppercase">Summary</h3>
+        </div>
+        <div className="border border-dashed border-[#333] rounded-lg p-6 text-sm text-[#888] leading-relaxed">
+          {blockingError || 'Enter valid transaction details to see a calculation.'}
+        </div>
+      </div>
+    );
+  }
+
+  // Only claim "fees last verified" when every line contributing to this
+  // result is independently verified as of that date — a mix of verified,
+  // unverified and manually-entered lines must never imply blanket verification.
+  const allVerified = allLinesVerifiedAsOf(result.feeLines, VERIFIED_DATE_ISO);
   const sources = Array.from(new Map(result.feeLines.filter((l) => l.sourceUrl).map((l) => [l.sourceUrl, l])).values());
   const confidence = CONFIDENCE_COPY[result.confidence];
 
@@ -56,7 +74,7 @@ export default function ResultsPanel({ result }: { result: CalculationResult }) 
       </div>
 
       <div className="mt-8 pt-8 border-t border-[#111]">
-        <div className="text-[#888] text-xs font-semibold tracking-widest uppercase mb-2">Estimated Profit</div>
+        <div className="text-[#888] text-xs font-semibold tracking-widest uppercase mb-2">Estimated Profit (cash, before VAT recovery)</div>
         <div className="flex items-baseline space-x-3">
           <div
             className={`text-5xl font-bold tracking-tighter tabular-nums ${
@@ -113,7 +131,7 @@ export default function ResultsPanel({ result }: { result: CalculationResult }) 
       )}
 
       <div className="mt-8 pt-6 border-t border-[#111] space-y-2">
-        {hasVerifiedLine && <div className="text-[11px] text-[#666]">Fees last verified: {VERIFIED_DATE_DISPLAY}</div>}
+        {allVerified && <div className="text-[11px] text-[#666]">Fees last verified: {VERIFIED_DATE_DISPLAY}</div>}
         {sources.length > 0 && (
           <div className="text-[11px] text-[#666] space-y-1">
             {sources.map((s) => (
@@ -127,8 +145,10 @@ export default function ResultsPanel({ result }: { result: CalculationResult }) 
           </div>
         )}
         <p className="text-[11px] text-[#555] leading-relaxed pt-2">
-          This is a fee/profit estimate, not tax or accounting advice. Confirm VAT and fee treatment with your accountant, HMRC guidance, or the
-          relevant platform invoice. See <a href="/methodology" className="underline hover:text-[#888]">methodology</a>.
+          &quot;Estimated Profit&quot; is a cash figure — total cash fees actually paid, before any VAT recovery. &quot;Estimated economic
+          fees&quot; above nets off potentially reclaimable VAT instead. This is a fee/profit estimate, not tax or accounting advice. Confirm
+          VAT and fee treatment with your accountant, HMRC guidance, or the relevant platform invoice. See{' '}
+          <a href="/methodology" className="underline hover:text-[#888]">methodology</a>.
         </p>
       </div>
     </div>

@@ -38,7 +38,7 @@ describe('Etsy acceptance tests', () => {
     expect(line(r, 'etsy-transaction').amountExVat).toBeCloseTo(35 * 0.065, 6);
     expect(line(r, 'etsy-payments').amountExVat).toBeCloseTo(35 * 0.04 + 0.2, 6);
     expect(line(r, 'etsy-regulatory').amountExVat).toBeCloseTo(35 * 0.0048, 6);
-    // Listing fee is flat, unaffected by postage.
+    // Listing fee is flat per unit, unaffected by postage.
     expect(line(r, 'etsy-listing').amountExVat).toBeCloseTo(0.15, 6);
   });
 
@@ -62,19 +62,71 @@ describe('Etsy acceptance tests', () => {
     expect(capped.assumptions.some((a) => a.includes('capped'))).toBe(true);
   });
 
+  it('2026-08-16 audit: listing fee scales per unit sold for quantity > 1', () => {
+    const one = calculateEtsy(base);
+    expect(line(one, 'etsy-listing').amountExVat).toBeCloseTo(0.2 * 0.75, 6);
+
+    const three = calculateEtsy({ ...base, quantity: 3 });
+    // US$0.20 x 3 units x 0.75 FX = £0.45, not a flat £0.15 regardless of quantity.
+    expect(line(three, 'etsy-listing').amountExVat).toBeCloseTo(0.2 * 3 * 0.75, 6);
+    expect(line(three, 'etsy-listing').label).toContain('3');
+    expect(line(three, 'etsy-listing').formula).toContain('3');
+  });
+
   it('VAT is applied only to fee types confirmed as VAT-eligible, and reported unconfirmed for the rest', () => {
-    const noVatId = calculateEtsy({ ...base, vatIdSupplied: false, itemPrice: 100, offsiteAdsRate: 0.15 });
+    const noVatId = calculateEtsy({ ...base, vatIdSupplied: false, itemPrice: 100, offsiteAdsRate: 0.15, currencyConversionSelected: true });
     const transactionLine = line(noVatId, 'etsy-transaction');
     expect(transactionLine.vatUnconfirmed).toBeFalsy();
     expect(transactionLine.vatAmount).toBeCloseTo(transactionLine.amountExVat * 0.2, 6);
 
-    const regulatoryLine = line(noVatId, 'etsy-regulatory');
-    expect(regulatoryLine.vatUnconfirmed).toBe(true);
-    expect(regulatoryLine.vatAmount).toBeUndefined();
+    // Currency conversion and Offsite Ads VAT treatment remain unconfirmed by a primary source.
+    const conversionLine = line(noVatId, 'etsy-conversion');
+    expect(conversionLine.vatUnconfirmed).toBe(true);
+    expect(conversionLine.vatAmount).toBeUndefined();
 
     const adsLine = line(noVatId, 'etsy-offsite-ads');
     expect(adsLine.vatUnconfirmed).toBe(true);
 
     expect(noVatId.exclusions.some((e) => e.includes('not independently confirmed'))).toBe(true);
+    // A real, applicable fee (conversion/ads) has unconfirmed VAT -> excluded, not merely an assumption.
+    expect(noVatId.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+  });
+
+  it('2026-08-16 audit: Regulatory Operating Fee VAT is now calculated (VAT-ID-based), not left unconfirmed', () => {
+    // Etsy's Regulatory Operating Fee help page confirms it is subject to VAT
+    // where applicable, following the same VAT-ID mechanism as the other fees.
+    const withoutVatId = calculateEtsy({ ...base, vatIdSupplied: false });
+    const regWithout = line(withoutVatId, 'etsy-regulatory');
+    expect(regWithout.vatUnconfirmed).toBeFalsy();
+    expect(regWithout.vatAmount).toBeCloseTo(regWithout.amountExVat * 0.2, 6);
+
+    const withVatId = calculateEtsy({ ...base, vatIdSupplied: true });
+    const regWith = line(withVatId, 'etsy-regulatory');
+    expect(regWith.vatUnconfirmed).toBeFalsy();
+    expect(regWith.vatAmount).toBeCloseTo(0, 6); // reverse charge — 0% charged by Etsy
+
+    // VAT on the regulatory fee must flow into cash fees / reclaimable VAT, not be dropped.
+    const registeredNoVatId = calculateEtsy({ ...base, vatIdSupplied: false, vatProfile: 'REGISTERED' });
+    expect(registeredNoVatId.vatOnFees).toBeGreaterThan(0);
+    expect(registeredNoVatId.potentiallyReclaimableVat).toBeCloseTo(registeredNoVatId.vatOnFees, 6);
+  });
+
+  it('rejects negative and non-integer/zero inputs at the engine boundary', () => {
+    expect(() => calculateEtsy({ ...base, itemPrice: -1 })).toThrow();
+    expect(() => calculateEtsy({ ...base, quantity: 0 })).toThrow();
+    expect(() => calculateEtsy({ ...base, quantity: 1.5 })).toThrow();
+    expect(() => calculateEtsy({ ...base, usdToGbpRate: -0.5 })).toThrow();
+    expect(() => calculateEtsy({ ...base, usdToGbpRate: 0 })).toThrow();
+  });
+
+  it('2026-08-16 audit: usdToGbpRate: null soft-excludes only the FX-dependent fees, not the whole calculation', () => {
+    const r = calculateEtsy({ ...base, usdToGbpRate: null, offsiteAdsRate: 0.15 });
+    expect(line(r, 'etsy-listing').amountExVat).toBe(0);
+    expect(line(r, 'etsy-offsite-ads').amountExVat).toBe(0);
+    // Everything else still computes normally — this is an exclusion, not a blocked calculation.
+    expect(line(r, 'etsy-transaction').amountExVat).toBeCloseTo(30 * 0.065, 6);
+    expect(line(r, 'etsy-regulatory').amountExVat).toBeCloseTo(30 * 0.0048, 6);
+    expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    expect(r.exclusions.some((e) => e.includes('exchange rate'))).toBe(true);
   });
 });

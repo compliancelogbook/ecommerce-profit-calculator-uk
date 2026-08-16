@@ -2,10 +2,16 @@
 // Data files under src/data/*.fees.ts describe WHAT the fees are.
 // src/lib/engines/*.ts describe HOW they are applied. Never mix the two.
 
+export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON';
+
 export type VerificationStatus =
   // Number is taken verbatim from the brief this dataset was built against,
   // and is exercised by an automated acceptance test.
   | 'SPEC_VERIFIED'
+  // Individually confirmed against primary evidence during a specific,
+  // dated audit/correction pass (distinct from the original build brief).
+  // Used e.g. for the 2026-08-16 launch-audit corrections.
+  | 'AUDIT_VERIFIED'
   // Number was pulled from a live fetch of the official source page but has
   // not been independently cross-checked line-by-line.
   | 'AUTOMATED_UNVERIFIED'
@@ -13,7 +19,25 @@ export type VerificationStatus =
   // marketplace-specific published fee.
   | 'STATUTORY';
 
+/**
+ * Full audit-grade metadata for a fee rule. Every field the specification
+ * requires a fee rule to support: platform, seller market, fee type,
+ * percentage/fixed/formula, currency, conditions, effective date, verified
+ * date, official source URL, verification status, notes. `platform` is
+ * omitted for cross-platform statutory facts (e.g. the UK VAT rate).
+ */
 export interface SourceRef {
+  platform?: Platform;
+  sellerMarket?: 'GB';
+  /** Machine-readable fee type, e.g. 'referral_fee', 'regulatory_operating_fee'. */
+  feeType?: string;
+  /** Human-readable formula, e.g. "14.9% up to £1,000, then 4% on the portion above". */
+  formula?: string;
+  currency?: 'GBP' | 'USD';
+  /** Any conditions under which this rule applies (plan, processor, region, etc.). */
+  conditions?: string;
+  /** ISO date the rate took effect, where publicly stated. Null if not separately known. */
+  effectiveDate?: string | null;
   url: string;
   /** ISO date the figure was last confirmed against the source, e.g. '2026-08-16'. */
   verifiedAt: string | null;

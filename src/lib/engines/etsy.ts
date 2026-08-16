@@ -1,10 +1,12 @@
 import {
   DEFAULT_USD_TO_GBP_RATE,
   ETSY_CURRENCY_CONVERSION_RATE,
+  ETSY_CURRENCY_CONVERSION_SOURCE,
   ETSY_CURRENCY_CONVERSION_VAT,
   ETSY_LISTING_FEE_USD,
   ETSY_LISTING_FEE_VAT,
   ETSY_OFFSITE_ADS_CAP_USD,
+  ETSY_OFFSITE_ADS_SOURCE,
   ETSY_OFFSITE_ADS_VAT,
   ETSY_PAYMENTS_FEE,
   ETSY_PAYMENTS_FEE_VAT,
@@ -16,11 +18,14 @@ import {
   type EtsyFeeVatTreatment,
   type EtsyOffsiteAdsRate,
 } from '../../data/etsy.fees';
+import type { SourceRef } from '../../data/types';
 import { UK_STANDARD_VAT_RATE } from '../../data/vat';
 import type { VatProfile } from '../../data/vat';
-import { money, percentOf, toRawNumber, ZERO, type Money } from '../decimal';
-import type { CalculationResult, ConfidenceLevel, FeeLine } from '../types';
-import { buildResult, reclaimableIfRegistered } from './shared';
+import { formatPercent } from '../format';
+import { money, percentOf, ZERO, type Money } from '../decimal';
+import { worstConfidence } from '../confidence';
+import type { CalculationResult, ConfidenceLevel, FeeCategory, FeeLine } from '../types';
+import { assertNonNegative, assertValidQuantity, buildResult, makeFeeLine, reclaimableIfRegistered } from './shared';
 
 export interface EtsyInput {
   itemPrice: number;
@@ -32,8 +37,14 @@ export interface EtsyInput {
   offsiteAdsRate: EtsyOffsiteAdsRate | null;
   vatIdSupplied: boolean;
   vatProfile: VatProfile;
-  /** Explicit, user-editable USD->GBP assumption (defaults to the spec fixture 0.75). */
-  usdToGbpRate?: number;
+  /**
+   * Explicit, user-editable USD->GBP assumption. `undefined` = not provided,
+   * falls back to the spec fixture 0.75. `null` = the caller has an
+   * unusable value (blank/invalid) — rather than silently substituting a
+   * default the user didn't ask for, the FX-dependent fees (listing,
+   * Offsite Ads) are excluded instead of guessed.
+   */
+  usdToGbpRate?: number | null;
 }
 
 function vatFor(amount: Money, treatment: EtsyFeeVatTreatment, vatIdSupplied: boolean): { vat: Money; unconfirmed: boolean } {
@@ -43,8 +54,21 @@ function vatFor(amount: Money, treatment: EtsyFeeVatTreatment, vatIdSupplied: bo
 }
 
 export function calculateEtsy(input: EtsyInput): CalculationResult {
-  const qty = Math.max(1, Math.floor(input.quantity) || 1);
-  const fxRate = input.usdToGbpRate ?? DEFAULT_USD_TO_GBP_RATE;
+  assertNonNegative('item price', input.itemPrice);
+  assertNonNegative('item cost', input.itemCost);
+  assertNonNegative('shipping charged', input.shippingCharged);
+  assertNonNegative('shipping cost', input.shippingCost);
+  assertValidQuantity(input.quantity);
+
+  // `null` = caller has an unusable FX value (blank/invalid) — exclude FX-dependent
+  // fees rather than guess. `undefined` = not provided at all, use the default.
+  const fxUnusable = input.usdToGbpRate === null;
+  const fxRate = fxUnusable ? null : (input.usdToGbpRate ?? DEFAULT_USD_TO_GBP_RATE);
+  if (fxRate !== null && !(fxRate > 0)) {
+    throw new Error(`Invalid USD->GBP rate: must be a positive finite number, got ${fxRate}.`);
+  }
+
+  const qty = input.quantity;
 
   const grossRevenue = money(input.itemPrice).times(qty).plus(input.shippingCharged);
   const cogs = money(input.itemCost).times(qty);
@@ -52,13 +76,23 @@ export function calculateEtsy(input: EtsyInput): CalculationResult {
   const feeBasis = grossRevenue; // Etsy % fees are charged on item price + shipping charged to the buyer.
 
   const feeLines: FeeLine[] = [];
-  const assumptions: string[] = [
-    `US$ → £ conversion assumed at ${fxRate.toFixed(2)} (user-editable assumption, not a live FX rate).`,
-  ];
+  const assumptions: string[] = [];
   const exclusions: string[] = [];
-  let confidence: ConfidenceLevel = 'EXACT_FOR_SELECTED_INPUTS';
+  const signals: ConfidenceLevel[] = [];
 
-  const listingFee = money(ETSY_LISTING_FEE_USD).times(fxRate);
+  if (fxRate !== null) {
+    assumptions.push(`US$ → £ conversion assumed at ${fxRate.toFixed(2)} (user-editable assumption, not a live FX rate).`);
+    // Etsy always relies on a disclosed, user-controlled FX assumption for the listing fee.
+    signals.push('ASSUMPTION_DEPENDENT');
+  } else {
+    exclusions.push(
+      'No usable US$ → £ exchange rate was supplied — the listing fee (and Offsite Ads fee, if selected) are excluded rather than guessed. Enter a valid rate to include them.'
+    );
+    signals.push('EXCLUDES_VARIABLE_FEES');
+  }
+
+  // Etsy charges the US$0.20 listing fee once per unit sold, not once per order.
+  const listingFee = fxRate !== null ? money(ETSY_LISTING_FEE_USD).times(qty).times(fxRate) : ZERO;
   const transactionFee = percentOf(feeBasis, ETSY_TRANSACTION_FEE_RATE);
   const paymentsFee = percentOf(feeBasis, ETSY_PAYMENTS_FEE.rate).plus(ETSY_PAYMENTS_FEE.fixed);
   const regulatoryFee = percentOf(feeBasis, ETSY_REGULATORY_FEE_RATE);
@@ -69,7 +103,7 @@ export function calculateEtsy(input: EtsyInput): CalculationResult {
   }
 
   let advertisingFee = ZERO;
-  if (input.offsiteAdsRate) {
+  if (input.offsiteAdsRate && fxRate !== null) {
     const uncapped = percentOf(feeBasis, input.offsiteAdsRate);
     const capGBP = money(ETSY_OFFSITE_ADS_CAP_USD).times(fxRate);
     advertisingFee = uncapped.gt(capGBP) ? capGBP : uncapped;
@@ -80,46 +114,128 @@ export function calculateEtsy(input: EtsyInput): CalculationResult {
     }
   }
 
-  const lineDefs: Array<{ id: string; label: string; amount: Money; category: FeeLine['category']; vatTreatment: EtsyFeeVatTreatment; sourceKey: keyof typeof ETSY_SOURCES | null }> = [
-    { id: 'etsy-listing', label: 'Listing fee', amount: listingFee, category: 'listing', vatTreatment: ETSY_LISTING_FEE_VAT, sourceKey: 'feesAndTaxes' },
-    { id: 'etsy-transaction', label: 'Transaction fee (6.5%)', amount: transactionFee, category: 'transaction', vatTreatment: ETSY_TRANSACTION_FEE_VAT, sourceKey: 'feesAndTaxes' },
-    { id: 'etsy-payments', label: 'Etsy Payments processing fee', amount: paymentsFee, category: 'processing', vatTreatment: ETSY_PAYMENTS_FEE_VAT, sourceKey: 'paymentProcessing' },
-    { id: 'etsy-regulatory', label: 'UK Regulatory Operating Fee (0.48%)', amount: regulatoryFee, category: 'regulatory', vatTreatment: ETSY_REGULATORY_FEE_VAT, sourceKey: 'regulatoryOperatingFee' },
+  const lineDefs: Array<{
+    id: string;
+    label: string;
+    amount: Money;
+    category: FeeCategory;
+    feeType: string;
+    formula: string;
+    vatTreatment: EtsyFeeVatTreatment;
+    source: SourceRef | null;
+  }> = [
+    {
+      id: 'etsy-listing',
+      label:
+        fxRate !== null
+          ? `Listing fee (US$${ETSY_LISTING_FEE_USD.toFixed(2)} × ${qty} unit${qty > 1 ? 's' : ''} × ${fxRate.toFixed(2)} FX)`
+          : 'Listing fee (excluded — no usable exchange rate)',
+      amount: listingFee,
+      category: 'listing',
+      feeType: 'listing_fee',
+      formula:
+        fxRate !== null
+          ? `US$${ETSY_LISTING_FEE_USD.toFixed(2)} per unit sold × ${qty} × ${fxRate.toFixed(2)} USD→GBP`
+          : `US$${ETSY_LISTING_FEE_USD.toFixed(2)} per unit sold × ${qty} — excluded, no usable USD→GBP rate`,
+      vatTreatment: ETSY_LISTING_FEE_VAT,
+      source: ETSY_SOURCES.feesAndTaxes,
+    },
+    {
+      id: 'etsy-transaction',
+      label: 'Transaction fee (6.5%)',
+      amount: transactionFee,
+      category: 'transaction',
+      feeType: 'transaction_fee',
+      formula: `${formatPercent(ETSY_TRANSACTION_FEE_RATE)} of item price + postage`,
+      vatTreatment: ETSY_TRANSACTION_FEE_VAT,
+      source: ETSY_SOURCES.feesAndTaxes,
+    },
+    {
+      id: 'etsy-payments',
+      label: 'Etsy Payments processing fee',
+      amount: paymentsFee,
+      category: 'processing',
+      feeType: 'payment_processing_fee',
+      formula: `${formatPercent(ETSY_PAYMENTS_FEE.rate)} + £${ETSY_PAYMENTS_FEE.fixed.toFixed(2)} of item price + postage`,
+      vatTreatment: ETSY_PAYMENTS_FEE_VAT,
+      source: ETSY_SOURCES.paymentProcessing,
+    },
+    {
+      id: 'etsy-regulatory',
+      label: 'UK Regulatory Operating Fee (0.48%)',
+      amount: regulatoryFee,
+      category: 'regulatory',
+      feeType: 'regulatory_operating_fee',
+      formula: `${formatPercent(ETSY_REGULATORY_FEE_RATE)} of item price + postage`,
+      vatTreatment: ETSY_REGULATORY_FEE_VAT,
+      source: ETSY_SOURCES.regulatoryOperatingFee,
+    },
   ];
   if (input.currencyConversionSelected) {
-    lineDefs.push({ id: 'etsy-conversion', label: 'Currency conversion fee (2.5%)', amount: currencyConversionFee, category: 'conversion', vatTreatment: ETSY_CURRENCY_CONVERSION_VAT, sourceKey: null });
+    lineDefs.push({
+      id: 'etsy-conversion',
+      label: 'Currency conversion fee (2.5%)',
+      amount: currencyConversionFee,
+      category: 'conversion',
+      feeType: 'currency_conversion_fee',
+      formula: `${formatPercent(ETSY_CURRENCY_CONVERSION_RATE)} of the relevant conversion basis`,
+      vatTreatment: ETSY_CURRENCY_CONVERSION_VAT,
+      source: ETSY_CURRENCY_CONVERSION_SOURCE,
+    });
   }
   if (input.offsiteAdsRate) {
-    lineDefs.push({ id: 'etsy-offsite-ads', label: `Offsite Ads fee (${input.offsiteAdsRate * 100}%)`, amount: advertisingFee, category: 'advertising', vatTreatment: ETSY_OFFSITE_ADS_VAT, sourceKey: null });
+    lineDefs.push({
+      id: 'etsy-offsite-ads',
+      label:
+        fxRate !== null
+          ? `Offsite Ads fee (${input.offsiteAdsRate * 100}%)`
+          : 'Offsite Ads fee (excluded — no usable exchange rate for the cap)',
+      amount: advertisingFee,
+      category: 'advertising',
+      feeType: 'advertising_fee',
+      formula:
+        fxRate !== null
+          ? `${formatPercent(input.offsiteAdsRate)} of order total, capped at US$${ETSY_OFFSITE_ADS_CAP_USD}/order`
+          : `${formatPercent(input.offsiteAdsRate)} of order total — excluded, no usable USD→GBP rate for the cap`,
+      vatTreatment: ETSY_OFFSITE_ADS_VAT,
+      source: ETSY_OFFSITE_ADS_SOURCE,
+    });
   }
 
-  let vatOnFees = ZERO;
   const unconfirmedVatLines: string[] = [];
+  let vatOnFees: Money = ZERO;
 
   for (const line of lineDefs) {
     const { vat, unconfirmed } = vatFor(line.amount, line.vatTreatment, input.vatIdSupplied);
-    vatOnFees = vatOnFees.plus(vat);
-    if (unconfirmed) unconfirmedVatLines.push(line.label);
-    const source = line.sourceKey ? ETSY_SOURCES[line.sourceKey] : undefined;
-    feeLines.push({
-      id: line.id,
-      label: line.label,
-      amountExVat: toRawNumber(line.amount),
-      category: line.category,
-      vatRate: unconfirmed ? undefined : input.vatIdSupplied ? 0 : UK_STANDARD_VAT_RATE,
-      vatAmount: unconfirmed ? undefined : toRawNumber(vat),
-      vatUnconfirmed: unconfirmed,
-      sourceUrl: source?.url,
-      verifiedAt: source?.verifiedAt,
-      verificationStatus: source?.verificationStatus,
-    });
+    if (unconfirmed) {
+      unconfirmedVatLines.push(line.label);
+      // A real, applicable fee is present but its VAT can't be confirmed — that's a missing
+      // applicable fee component, not merely a disclosed assumption.
+      signals.push('EXCLUDES_VARIABLE_FEES');
+    } else {
+      vatOnFees = vatOnFees.plus(vat);
+    }
+    feeLines.push(
+      makeFeeLine({
+        id: line.id,
+        label: line.label,
+        amount: line.amount,
+        category: line.category,
+        platform: 'ETSY',
+        feeType: line.feeType,
+        formula: line.formula,
+        source: line.source ?? undefined,
+        vatRate: unconfirmed ? undefined : input.vatIdSupplied ? 0 : UK_STANDARD_VAT_RATE,
+        vatAmount: unconfirmed ? undefined : vat,
+        vatUnconfirmed: unconfirmed,
+      })
+    );
   }
 
   if (unconfirmedVatLines.length > 0) {
     exclusions.push(
       `VAT treatment not independently confirmed for: ${unconfirmedVatLines.join(', ')}. Shown ex-VAT — check your Etsy invoice for the actual VAT charged on these specific fees.`
     );
-    confidence = 'ASSUMPTION_DEPENDENT';
   }
   assumptions.push(
     input.vatIdSupplied
@@ -144,6 +260,6 @@ export function calculateEtsy(input: EtsyInput): CalculationResult {
     feeLines,
     assumptions,
     exclusions,
-    confidence,
+    confidence: worstConfidence(signals),
   });
 }

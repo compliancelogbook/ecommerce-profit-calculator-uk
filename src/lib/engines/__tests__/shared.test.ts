@@ -3,6 +3,8 @@ import { ZERO, money } from '../../decimal';
 import { buildResult } from '../shared';
 import { calculateShopify } from '../shopify';
 import { calculateAmazon } from '../amazon';
+import { calculateEbay } from '../ebay';
+import { calculateEtsy } from '../etsy';
 
 describe('Shared engine tests', () => {
   it('C01: zero revenue and zero costs -> profit £0, margin/ROI null, no Infinity/NaN', () => {
@@ -84,5 +86,73 @@ describe('Shared engine tests', () => {
     });
     // basis = 10*3 = 30; fee = 30*0.02 + 0.25 (fixed charged once, not x3)
     expect(shopifyQty3.paymentProcessingFee).toBeCloseTo(30 * 0.02 + 0.25, 6);
+  });
+
+  it('2026-08-16 audit: fractional and non-integer quantities are rejected across every engine, not silently rounded', () => {
+    expect(() =>
+      calculateEbay({
+        itemPrice: 10,
+        itemCost: 0,
+        shippingCharged: 0,
+        shippingCost: 0,
+        quantity: 2.5,
+        categoryId: 'EVERYTHING_ELSE',
+        region: 'DOMESTIC',
+        currencyConversionSelected: false,
+        topRatedPremiumService: false,
+        vatProfile: 'NOT_REGISTERED',
+      })
+    ).toThrow();
+    expect(() =>
+      calculateEtsy({
+        itemPrice: 10,
+        itemCost: 0,
+        shippingCharged: 0,
+        shippingCost: 0,
+        quantity: 0,
+        currencyConversionSelected: false,
+        offsiteAdsRate: null,
+        vatIdSupplied: true,
+        vatProfile: 'NOT_REGISTERED',
+      })
+    ).toThrow();
+  });
+
+  it('2026-08-16 audit: fee breakdown reconciles exactly with cash/economic totals (no rounding drift)', () => {
+    const r = calculateEbay({
+      itemPrice: 1200,
+      itemCost: 100,
+      shippingCharged: 5,
+      shippingCost: 3,
+      quantity: 1,
+      categoryId: 'JEWELLERY_WATCHES',
+      region: 'US_CANADA',
+      currencyConversionSelected: true,
+      topRatedPremiumService: true,
+      vatProfile: 'REGISTERED',
+    });
+
+    const exVatSum = r.feeLines.reduce((acc, l) => acc + l.amountExVat, 0);
+    const vatSum = r.feeLines.reduce((acc, l) => acc + (l.vatAmount ?? 0), 0);
+    expect(exVatSum + vatSum).toBeCloseTo(r.totalCashFees, 6);
+    expect(r.totalCashFees - r.potentiallyReclaimableVat).toBeCloseTo(r.estimatedEconomicFees, 6);
+    expect(r.grossRevenue - r.cogs - r.shippingCost - r.totalCashFees).toBeCloseTo(r.estimatedProfit, 6);
+  });
+
+  it('2026-08-16 audit: confidence precedence holds across a mix of verified, assumption-dependent and excluded fee lines', () => {
+    // Amazon always carries the "referral VAT excluded" signal (EXCLUDES_VARIABLE_FEES),
+    // which must win even when an unrelated assumption (AUTOMATED_UNVERIFIED category) is also present.
+    const r = calculateAmazon({
+      itemPrice: 20,
+      itemCost: 0,
+      deliveryCharge: 0,
+      shippingCost: 0,
+      quantity: 1,
+      sellerPlan: 'INDIVIDUAL',
+      categoryId: 'BOOKS', // AUTOMATED_UNVERIFIED, flat
+      vatProfile: 'NOT_REGISTERED',
+    });
+    expect(r.assumptions.length).toBeGreaterThan(0);
+    expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
   });
 });

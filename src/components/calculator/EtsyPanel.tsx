@@ -10,22 +10,35 @@ export interface EtsyPanelState {
   usdToGbpRate: string;
 }
 
+export interface EtsyPanelErrors {
+  usdToGbpRate?: string;
+}
+
 const OFFSITE_ADS_OPTIONS: { value: string; label: string }[] = [
   { value: 'NONE', label: 'Not applicable' },
   { value: '0.15', label: '15% (standard)' },
   { value: '0.12', label: '12% (eligible shops)' },
 ];
 
-export default function EtsyPanel({ state, onChange }: { state: EtsyPanelState; onChange: (patch: Partial<EtsyPanelState>) => void }) {
+export default function EtsyPanel({
+  state,
+  onChange,
+  errors,
+}: {
+  state: EtsyPanelState;
+  onChange: (patch: Partial<EtsyPanelState>) => void;
+  errors?: EtsyPanelErrors;
+}) {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-[#eaeaea] tracking-tight">Etsy Configuration</h2>
 
       <NumberField
-        label="US$ → £ exchange rate assumption (applies to the $0.20 listing fee)"
+        label="US$ → £ exchange rate assumption (applies to the $0.20-per-unit listing fee)"
         value={state.usdToGbpRate}
         onChange={(v) => onChange({ usdToGbpRate: v })}
         placeholder="0.75"
+        error={errors?.usdToGbpRate}
       />
 
       <SelectField
@@ -34,6 +47,9 @@ export default function EtsyPanel({ state, onChange }: { state: EtsyPanelState; 
         onChange={(v) => onChange({ offsiteAdsRate: v === 'NONE' ? null : (Number(v) as EtsyOffsiteAdsRate) })}
         options={OFFSITE_ADS_OPTIONS}
       />
+      {state.offsiteAdsRate !== null && (
+        <p className="text-[11px] text-[#666] -mt-4">Capped at US$100/order, converted using the exchange rate above.</p>
+      )}
 
       <CheckboxField
         label="Order required currency conversion"

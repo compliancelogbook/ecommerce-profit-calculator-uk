@@ -12,7 +12,20 @@ export interface AmazonPanelState {
   expectedMonthlyUnits: string;
 }
 
-export default function AmazonPanel({ state, onChange }: { state: AmazonPanelState; onChange: (patch: Partial<AmazonPanelState>) => void }) {
+export interface AmazonPanelErrors {
+  manualCategoryRate?: string;
+  expectedMonthlyUnits?: string;
+}
+
+export default function AmazonPanel({
+  state,
+  onChange,
+  errors,
+}: {
+  state: AmazonPanelState;
+  onChange: (patch: Partial<AmazonPanelState>) => void;
+  errors?: AmazonPanelErrors;
+}) {
   const categoryOptions = [
     ...AMAZON_CATEGORIES.map((c) => ({
       value: c.id,
@@ -44,13 +57,15 @@ export default function AmazonPanel({ state, onChange }: { state: AmazonPanelSta
           value={state.expectedMonthlyUnits}
           onChange={(v) => onChange({ expectedMonthlyUnits: v })}
           placeholder="e.g. 100"
+          error={errors?.expectedMonthlyUnits}
         />
       )}
 
       <SelectField label="Category" value={state.categoryId} onChange={(v) => onChange({ categoryId: v })} options={categoryOptions} />
       <p className="text-[11px] text-[#666] -mt-4">
         &quot;Unverified&quot; categories were pulled from an automated fetch of Amazon&apos;s pricing page and have not been independently
-        cross-checked line-by-line.
+        cross-checked line-by-line. A small number of categories previously listed here were removed during the 2026-08-16 audit because
+        their threshold mechanic (blended vs. whole-amount) could not be confirmed — use &quot;Other&quot; and enter a rate manually for those.
       </p>
 
       {state.categoryId === UNSUPPORTED_CATEGORY_ID && (
@@ -59,6 +74,7 @@ export default function AmazonPanel({ state, onChange }: { state: AmazonPanelSta
           value={state.manualCategoryRate}
           onChange={(v) => onChange({ manualCategoryRate: v })}
           placeholder="e.g. 15"
+          error={errors?.manualCategoryRate}
         />
       )}
     </div>

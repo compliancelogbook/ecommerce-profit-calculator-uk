@@ -1,4 +1,4 @@
-import type { VerificationStatus } from '../data/types';
+import type { Platform, VerificationStatus } from '../data/types';
 
 export type ConfidenceLevel = 'EXACT_FOR_SELECTED_INPUTS' | 'ASSUMPTION_DEPENDENT' | 'EXCLUDES_VARIABLE_FEES';
 
@@ -13,12 +13,27 @@ export type FeeCategory =
   | 'subscription'
   | 'other';
 
+/**
+ * A single, self-describing fee line. Deliberately carries full audit
+ * metadata (platform, market, fee type, formula, currency, conditions,
+ * effective date, verification) so a result is auditable by reading the
+ * data it returns — not by reverse-engineering the engine that produced it.
+ */
 export interface FeeLine {
   id: string;
   label: string;
   /** Unrounded, ex-VAT amount in pounds. */
   amountExVat: number;
   category: FeeCategory;
+  platform?: Platform;
+  sellerMarket?: 'GB';
+  /** Machine-readable fee type, e.g. 'referral_fee', 'regulatory_operating_fee'. */
+  feeType?: string;
+  /** Human-readable formula actually applied, e.g. "14.9% up to £1,000, then 4% above". */
+  formula?: string;
+  currency?: 'GBP' | 'USD';
+  conditions?: string;
+  effectiveDate?: string | null;
   vatRate?: number;
   /** Unrounded VAT amount in pounds, when known. */
   vatAmount?: number;

@@ -19,7 +19,19 @@ const REGION_OPTIONS: { value: EbayInternationalRegion; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-export default function EbayPanel({ state, onChange }: { state: EbayPanelState; onChange: (patch: Partial<EbayPanelState>) => void }) {
+export interface EbayPanelErrors {
+  manualCategoryRate?: string;
+}
+
+export default function EbayPanel({
+  state,
+  onChange,
+  errors,
+}: {
+  state: EbayPanelState;
+  onChange: (patch: Partial<EbayPanelState>) => void;
+  errors?: EbayPanelErrors;
+}) {
   const categoryOptions = [
     ...EBAY_CATEGORIES.map((c) => ({ value: c.id, label: c.label })),
     { value: UNSUPPORTED_CATEGORY_ID, label: 'Other (not in verified schedule — enter manually)' },
@@ -29,8 +41,8 @@ export default function EbayPanel({ state, onChange }: { state: EbayPanelState; 
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-[#eaeaea] tracking-tight">eBay UK Business Configuration</h2>
       <p className="text-xs text-[#888] leading-relaxed">
-        Only a subset of eBay&apos;s full category schedule is verified in this build. Categories outside that list require a manually
-        entered rate rather than a guess.
+        Only a subset of eBay&apos;s full category schedule is verified in this build. eBay&apos;s live category page could not be
+        confirmed at the time of writing — categories outside this list require a manually entered rate rather than a guess.
       </p>
 
       <SelectField label="Category" value={state.categoryId} onChange={(v) => onChange({ categoryId: v })} options={categoryOptions} />
@@ -41,6 +53,7 @@ export default function EbayPanel({ state, onChange }: { state: EbayPanelState; 
           value={state.manualCategoryRate}
           onChange={(v) => onChange({ manualCategoryRate: v })}
           placeholder="e.g. 12.5"
+          error={errors?.manualCategoryRate}
         />
       )}
 

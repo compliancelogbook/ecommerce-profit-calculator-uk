@@ -61,11 +61,30 @@ describe('Shopify acceptance tests', () => {
     expect(r.platformTransactionFee).toBeCloseTo(2.0, 6);
     expect(r.paymentProcessingFee).toBeCloseTo(1.7, 6);
     expect(r.platformTransactionFee + r.paymentProcessingFee).toBeCloseTo(3.7, 6);
-    expect(r.confidence).toBe('ASSUMPTION_DEPENDENT');
+    // 2026-08-16 audit correction: this was previously asserted as ASSUMPTION_DEPENDENT.
+    // That understated the uncertainty — Shopify billing VAT is excluded from every
+    // Shopify quote (see the confidence-precedence test in shared.test.ts), which
+    // outranks a disclosed processor-rate assumption under the audit-mandated
+    // "missing/applicable excluded fee > disclosed assumption" precedence rule.
+    expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
   });
 
   it('S09: Basic £25/mo / 100 expected monthly orders -> £0.25/order allocated', () => {
     const r = calculateShopify({ ...base, expectedMonthlyOrders: 100 });
     expect(r.allocatedSubscriptionCost).toBeCloseTo(0.25, 6);
+  });
+
+  it('2026-08-16 audit: Shopify never reports EXACT_FOR_SELECTED_INPUTS, even on the happy path, because billing VAT is always excluded', () => {
+    const r = calculateShopify(base);
+    expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    expect(r.exclusions.some((e) => e.includes('Shopify billing VAT'))).toBe(true);
+  });
+
+  it('rejects negative and non-integer/zero inputs at the engine boundary', () => {
+    expect(() => calculateShopify({ ...base, soldPrice: -1 })).toThrow();
+    expect(() => calculateShopify({ ...base, itemCost: -0.01 })).toThrow();
+    expect(() => calculateShopify({ ...base, quantity: 0 })).toThrow();
+    expect(() => calculateShopify({ ...base, quantity: -2 })).toThrow();
+    expect(() => calculateShopify({ ...base, quantity: 1.5 })).toThrow();
   });
 });

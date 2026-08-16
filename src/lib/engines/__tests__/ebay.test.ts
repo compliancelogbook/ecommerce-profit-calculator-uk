@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateEbay, type EbayInput } from '../ebay';
+import { UNSUPPORTED_CATEGORY_ID } from '../../../data/types';
 
 const base: EbayInput = {
   itemPrice: 30,
@@ -81,5 +82,54 @@ describe('eBay UK Business acceptance tests', () => {
     expect(line(r, 'ebay-variable-fvf').amountExVat).toBe(0);
     expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
     expect(r.exclusions.some((e) => e.includes('not in the verified'))).toBe(true);
+  });
+
+  describe('2026-08-16 audit: manual category rate never silently becomes 0%', () => {
+    const unsupported = { ...base, categoryId: UNSUPPORTED_CATEGORY_ID };
+
+    it('missing manual rate (undefined/null) excludes the fee', () => {
+      const r1 = calculateEbay({ ...unsupported, manualCategoryRate: undefined });
+      expect(line(r1, 'ebay-variable-fvf').amountExVat).toBe(0);
+      expect(r1.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+
+      const r2 = calculateEbay({ ...unsupported, manualCategoryRate: null });
+      expect(line(r2, 'ebay-variable-fvf').amountExVat).toBe(0);
+      expect(r2.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    });
+
+    it('a 0% manual rate is rejected, not accepted as a real 0-fee calculation', () => {
+      const r = calculateEbay({ ...unsupported, manualCategoryRate: 0 });
+      expect(line(r, 'ebay-variable-fvf').amountExVat).toBe(0);
+      expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    });
+
+    it('a negative manual rate is rejected', () => {
+      const r = calculateEbay({ ...unsupported, manualCategoryRate: -0.05 });
+      expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    });
+
+    it('a malformed (NaN/Infinity) manual rate is rejected', () => {
+      const r1 = calculateEbay({ ...unsupported, manualCategoryRate: NaN });
+      expect(r1.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+      const r2 = calculateEbay({ ...unsupported, manualCategoryRate: Infinity });
+      expect(r2.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    });
+
+    it('an implausibly high manual rate (>100%) is rejected', () => {
+      const r = calculateEbay({ ...unsupported, manualCategoryRate: 1.5 });
+      expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    });
+
+    it('a valid manual rate is accepted and marked ASSUMPTION_DEPENDENT', () => {
+      const r = calculateEbay({ ...unsupported, manualCategoryRate: 0.125, itemPrice: 100 });
+      expect(line(r, 'ebay-variable-fvf').amountExVat).toBeCloseTo(12.5, 6);
+      expect(r.confidence).toBe('ASSUMPTION_DEPENDENT');
+    });
+  });
+
+  it('rejects negative and non-integer/zero inputs at the engine boundary', () => {
+    expect(() => calculateEbay({ ...base, itemPrice: -1 })).toThrow();
+    expect(() => calculateEbay({ ...base, quantity: 0 })).toThrow();
+    expect(() => calculateEbay({ ...base, quantity: 1.5 })).toThrow();
   });
 });

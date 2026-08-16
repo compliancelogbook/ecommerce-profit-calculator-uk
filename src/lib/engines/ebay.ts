@@ -1,20 +1,26 @@
 import {
   EBAY_CATEGORIES,
   EBAY_CURRENCY_CONVERSION_RATE,
+  EBAY_CURRENCY_CONVERSION_SOURCE,
   EBAY_INTERNATIONAL_FEE_RATES,
+  EBAY_INTERNATIONAL_FEE_SOURCE,
   EBAY_PER_ORDER_FEE,
+  EBAY_PER_ORDER_FEE_SOURCE,
   EBAY_REGULATORY_FEE_RATE,
+  EBAY_REGULATORY_FEE_SOURCE,
   EBAY_SOURCE,
   EBAY_TOP_RATED_DISCOUNT_RATE,
   type EbayInternationalRegion,
 } from '../../data/ebay.fees';
-import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
+import { UNSUPPORTED_CATEGORY_ID, type SourceRef } from '../../data/types';
 import { UK_STANDARD_VAT_RATE } from '../../data/vat';
 import type { VatProfile } from '../../data/vat';
-import { money, percentOf, toRawNumber, ZERO } from '../decimal';
+import { formatPercent } from '../format';
+import { money, percentOf, sum, ZERO, type Money } from '../decimal';
 import { applySchedule } from '../tiered-fee';
-import type { CalculationResult, ConfidenceLevel, FeeLine } from '../types';
-import { buildResult, reclaimableIfRegistered } from './shared';
+import { worstConfidence } from '../confidence';
+import type { CalculationResult, ConfidenceLevel, FeeCategory, FeeLine } from '../types';
+import { assertNonNegative, assertValidQuantity, buildResult, makeFeeLine, reclaimableIfRegistered } from './shared';
 
 export interface EbayInput {
   itemPrice: number;
@@ -23,7 +29,7 @@ export interface EbayInput {
   shippingCost: number;
   quantity: number;
   categoryId: string;
-  /** Required when categoryId === UNSUPPORTED_CATEGORY_ID — a manual, clearly-labelled percentage. */
+  /** Required when categoryId === UNSUPPORTED_CATEGORY_ID — a manual, clearly-labelled percentage (fraction, e.g. 0.125 = 12.5%). Must be a valid, >0 number; 0/negative/absent are all treated as "not supplied". */
   manualCategoryRate?: number | null;
   region: EbayInternationalRegion;
   currencyConversionSelected: boolean;
@@ -31,8 +37,18 @@ export interface EbayInput {
   vatProfile: VatProfile;
 }
 
+function isValidManualRate(rate: number | null | undefined): rate is number {
+  return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 && rate <= 1;
+}
+
 export function calculateEbay(input: EbayInput): CalculationResult {
-  const qty = Math.max(1, Math.floor(input.quantity) || 1);
+  assertNonNegative('item price', input.itemPrice);
+  assertNonNegative('item cost', input.itemCost);
+  assertNonNegative('shipping charged', input.shippingCharged);
+  assertNonNegative('shipping cost', input.shippingCost);
+  assertValidQuantity(input.quantity);
+
+  const qty = input.quantity;
   const totalSaleBasis = money(input.itemPrice).times(qty).plus(input.shippingCharged);
   const cogs = money(input.itemCost).times(qty);
   const shippingCost = money(input.shippingCost);
@@ -42,29 +58,58 @@ export function calculateEbay(input: EbayInput): CalculationResult {
   const exclusions: string[] = [
     'eBay seller-performance penalties and Promoted Listings costs are not included by default.',
   ];
-  let confidence: ConfidenceLevel = 'EXACT_FOR_SELECTED_INPUTS';
+  const signals: ConfidenceLevel[] = [];
+  const vatAmounts: Money[] = [];
+
+  // eBay UK Business seller fees are published exclusive of VAT — 20% UK VAT
+  // is added to every fee line individually (not just as a lump total) so
+  // the breakdown reconciles against totalCashFees without hidden math.
+  function pushLine(params: {
+    id: string;
+    label: string;
+    amount: Money;
+    category: FeeCategory;
+    feeType: string;
+    formula: string;
+    source?: SourceRef;
+  }) {
+    const vat = params.amount.times(UK_STANDARD_VAT_RATE);
+    vatAmounts.push(vat);
+    feeLines.push(
+      makeFeeLine({
+        ...params,
+        platform: 'EBAY',
+        vatRate: UK_STANDARD_VAT_RATE,
+        vatAmount: vat,
+      })
+    );
+  }
 
   const category = EBAY_CATEGORIES.find((c) => c.id === input.categoryId);
 
   let variableFvf = ZERO;
   let categoryLabel = 'Unsupported category';
+  let categorySource = EBAY_SOURCE;
 
   if (category) {
     const { total } = applySchedule(totalSaleBasis, category.schedule);
     variableFvf = total;
     categoryLabel = category.label;
-  } else if (input.categoryId === UNSUPPORTED_CATEGORY_ID && typeof input.manualCategoryRate === 'number') {
+    categorySource = category.source;
+  } else if (input.categoryId === UNSUPPORTED_CATEGORY_ID && isValidManualRate(input.manualCategoryRate)) {
     variableFvf = percentOf(totalSaleBasis, input.manualCategoryRate);
     categoryLabel = 'Manually entered category rate';
     assumptions.push(
       `Category not in the verified schedule — Final Value Fee calculated using a manually entered rate of ${(input.manualCategoryRate * 100).toFixed(1)}%.`
     );
-    confidence = 'ASSUMPTION_DEPENDENT';
+    signals.push('ASSUMPTION_DEPENDENT');
   } else {
     exclusions.push(
-      'Selected category is not in the verified eBay UK Business fee schedule and no manual rate was supplied — Final Value Fee excluded rather than guessed.'
+      input.categoryId === UNSUPPORTED_CATEGORY_ID
+        ? 'No valid manual Final Value Fee rate was supplied (it must be a number greater than 0%) — Final Value Fee excluded rather than guessed.'
+        : 'Selected category is not in the verified eBay UK Business fee schedule and no manual rate was supplied — Final Value Fee excluded rather than guessed.'
     );
-    confidence = 'EXCLUDES_VARIABLE_FEES';
+    signals.push('EXCLUDES_VARIABLE_FEES');
   }
 
   let discountApplied = ZERO;
@@ -73,70 +118,69 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     variableFvf = variableFvf.minus(discountApplied);
   }
 
-  feeLines.push({
+  pushLine({
     id: 'ebay-variable-fvf',
     label: `Final Value Fee — ${categoryLabel}${input.topRatedPremiumService && discountApplied.gt(0) ? ' (after 10% Top Rated discount)' : ''}`,
-    amountExVat: toRawNumber(variableFvf),
+    amount: variableFvf,
     category: 'transaction',
-    sourceUrl: category?.source.url ?? EBAY_SOURCE.url,
-    verifiedAt: category?.source.verifiedAt ?? null,
-    verificationStatus: category?.source.verificationStatus,
+    feeType: 'final_value_fee',
+    formula: category ? (category.source.formula ?? categoryLabel) : categoryLabel,
+    source: category ? categorySource : undefined,
   });
 
   const perOrderFee = money(
     category?.perOrderFeeOverride ?? (totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? EBAY_PER_ORDER_FEE.atOrBelow : EBAY_PER_ORDER_FEE.above)
   );
-  feeLines.push({
+  pushLine({
     id: 'ebay-per-order',
     label: `Per-order fee (${totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? `sale ≤ £${EBAY_PER_ORDER_FEE.threshold}` : `sale > £${EBAY_PER_ORDER_FEE.threshold}`})`,
-    amountExVat: toRawNumber(perOrderFee),
+    amount: perOrderFee,
     category: 'transaction',
-    sourceUrl: EBAY_SOURCE.url,
-    verifiedAt: EBAY_SOURCE.verifiedAt,
-    verificationStatus: EBAY_SOURCE.verificationStatus,
+    feeType: 'per_order_fee',
+    formula: EBAY_PER_ORDER_FEE_SOURCE.formula ?? '',
+    source: EBAY_PER_ORDER_FEE_SOURCE,
   });
 
   const regulatoryFee = percentOf(totalSaleBasis, EBAY_REGULATORY_FEE_RATE);
-  feeLines.push({
+  pushLine({
     id: 'ebay-regulatory',
     label: 'UK Regulatory Operating Fee (0.35%)',
-    amountExVat: toRawNumber(regulatoryFee),
+    amount: regulatoryFee,
     category: 'regulatory',
-    sourceUrl: EBAY_SOURCE.url,
-    verifiedAt: EBAY_SOURCE.verifiedAt,
-    verificationStatus: EBAY_SOURCE.verificationStatus,
+    feeType: 'regulatory_operating_fee',
+    formula: `${formatPercent(EBAY_REGULATORY_FEE_RATE)} of the total-sale basis`,
+    source: EBAY_REGULATORY_FEE_SOURCE,
   });
 
   let internationalFee = ZERO;
   if (input.region !== 'DOMESTIC') {
     internationalFee = percentOf(totalSaleBasis, EBAY_INTERNATIONAL_FEE_RATES[input.region]);
-    feeLines.push({
+    pushLine({
       id: 'ebay-international',
       label: `International fee (${input.region.replace(/_/g, ' ').toLowerCase()})`,
-      amountExVat: toRawNumber(internationalFee),
+      amount: internationalFee,
       category: 'international',
-      sourceUrl: EBAY_SOURCE.url,
-      verifiedAt: EBAY_SOURCE.verifiedAt,
-      verificationStatus: EBAY_SOURCE.verificationStatus,
+      feeType: 'international_fee',
+      formula: `${formatPercent(EBAY_INTERNATIONAL_FEE_RATES[input.region])} of the total-sale basis`,
+      source: EBAY_INTERNATIONAL_FEE_SOURCE,
     });
   }
 
   let currencyConversionFee = ZERO;
   if (input.currencyConversionSelected) {
     currencyConversionFee = percentOf(totalSaleBasis, EBAY_CURRENCY_CONVERSION_RATE);
-    feeLines.push({
+    pushLine({
       id: 'ebay-conversion',
       label: 'Currency conversion fee (2.5%)',
-      amountExVat: toRawNumber(currencyConversionFee),
+      amount: currencyConversionFee,
       category: 'conversion',
-      sourceUrl: EBAY_SOURCE.url,
-      verifiedAt: EBAY_SOURCE.verifiedAt,
-      verificationStatus: EBAY_SOURCE.verificationStatus,
+      feeType: 'currency_conversion_fee',
+      formula: `${formatPercent(EBAY_CURRENCY_CONVERSION_RATE)} of the relevant basis`,
+      source: EBAY_CURRENCY_CONVERSION_SOURCE,
     });
   }
 
-  const exVatTotal = variableFvf.plus(perOrderFee).plus(regulatoryFee).plus(internationalFee).plus(currencyConversionFee);
-  const vatOnFees = exVatTotal.times(UK_STANDARD_VAT_RATE);
+  const vatOnFees = sum(vatAmounts);
   const potentiallyReclaimableVat = reclaimableIfRegistered(vatOnFees, input.vatProfile);
 
   assumptions.push('eBay UK Business seller fees are published exclusive of VAT; 20% UK VAT is assumed on top of all fee lines.');
@@ -154,6 +198,6 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     feeLines,
     assumptions,
     exclusions,
-    confidence,
+    confidence: worstConfidence(signals),
   });
 }

@@ -9,17 +9,30 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-sm font-medium text-[#888]">{children}</label>;
 }
 
+/** Reuses the app's existing red-500 "something's wrong" color (already used for negative profit/margin) — no new color introduced. */
+export function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="text-xs text-red-500">
+      {message}
+    </p>
+  );
+}
+
 export function MoneyField({
   label,
   value,
   onChange,
   prefix = '£',
+  error,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   prefix?: string;
+  error?: string;
 }) {
+  const errorId = error ? `${label.replace(/\s+/g, '-')}-error` : undefined;
   return (
     <div className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
@@ -29,9 +42,14 @@ export function MoneyField({
           type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all"
+          aria-invalid={!!error}
+          aria-describedby={errorId}
+          className={`w-full bg-[#0a0a0a] border rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:ring-1 transition-all ${
+            error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-[#333] focus:border-[#888] focus:ring-[#888]'
+          }`}
         />
       </div>
+      {errorId && <FieldError id={errorId} message={error} />}
     </div>
   );
 }
@@ -41,12 +59,15 @@ export function NumberField({
   value,
   onChange,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  error?: string;
 }) {
+  const errorId = error ? `${label.replace(/\s+/g, '-')}-error` : undefined;
   return (
     <div className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
@@ -55,8 +76,13 @@ export function NumberField({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 px-3 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all"
+        aria-invalid={!!error}
+        aria-describedby={errorId}
+        className={`w-full bg-[#0a0a0a] border rounded-md py-2.5 px-3 text-[#eaeaea] text-sm focus:outline-none focus:ring-1 transition-all ${
+          error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-[#333] focus:border-[#888] focus:ring-[#888]'
+        }`}
       />
+      {errorId && <FieldError id={errorId} message={error} />}
     </div>
   );
 }

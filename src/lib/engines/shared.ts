@@ -1,6 +1,7 @@
 import { money, sum, toRawNumber, ZERO, type Money } from '../decimal';
-import { safeRatioPct, type CalculationResult, type ConfidenceLevel, type FeeLine } from '../types';
+import { safeRatioPct, type CalculationResult, type ConfidenceLevel, type FeeCategory, type FeeLine } from '../types';
 import type { VatProfile } from '../../data/vat';
+import type { Platform, SourceRef } from '../../data/types';
 
 export interface ResultParts {
   grossRevenue: Money;
@@ -105,4 +106,67 @@ export function applyStandardVat(amount: Money, rate: number): Money {
 
 export function reclaimableIfRegistered(vatAmount: Money, vatProfile: VatProfile): Money {
   return vatProfile === 'REGISTERED' ? vatAmount : ZERO;
+}
+
+// --- Pure-engine-boundary input guards ---------------------------------
+// Engines are called with already-validated numbers from the UI layer, but
+// they must not silently accept or normalise unsafe values either (e.g. the
+// old `Math.max(1, Math.floor(qty) || 1)` pattern, which turned a bad
+// quantity into a silently wrong answer). A bad value here is a caller bug,
+// not a "best guess" — so these throw rather than coerce.
+
+export function assertNonNegative(fieldLabel: string, value: number): void {
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`Invalid ${fieldLabel}: must be a non-negative finite number, got ${value}.`);
+  }
+}
+
+export function assertValidQuantity(quantity: number): void {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error(`Invalid quantity: must be a whole number of at least 1, got ${quantity}.`);
+  }
+}
+
+// --- Self-describing fee lines ------------------------------------------
+// Every automatically calculated fee line carries full audit metadata so a
+// result can be checked by reading the data it returns, not by
+// reverse-engineering the engine.
+
+export function makeFeeLine(params: {
+  id: string;
+  label: string;
+  amount: Money;
+  category: FeeCategory;
+  platform: Platform;
+  feeType: string;
+  /** Human-readable formula actually applied — usually more specific than the rule's generic `source.formula` (e.g. names the tier that fired). */
+  formula: string;
+  currency?: 'GBP' | 'USD';
+  conditions?: string;
+  source?: SourceRef;
+  vatRate?: number;
+  vatAmount?: Money;
+  vatUnconfirmed?: boolean;
+  notes?: string;
+}): FeeLine {
+  return {
+    id: params.id,
+    label: params.label,
+    amountExVat: toRawNumber(params.amount),
+    category: params.category,
+    platform: params.platform,
+    sellerMarket: 'GB',
+    feeType: params.feeType,
+    formula: params.formula,
+    currency: params.currency ?? 'GBP',
+    conditions: params.conditions ?? params.source?.conditions,
+    effectiveDate: params.source?.effectiveDate ?? null,
+    vatRate: params.vatRate,
+    vatAmount: params.vatAmount !== undefined ? toRawNumber(params.vatAmount) : undefined,
+    vatUnconfirmed: params.vatUnconfirmed,
+    sourceUrl: params.source?.url,
+    verifiedAt: params.source?.verifiedAt,
+    verificationStatus: params.source?.verificationStatus,
+    notes: params.notes ?? params.source?.notes,
+  };
 }

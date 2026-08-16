@@ -14,12 +14,20 @@ export interface ShopifyPanelState {
   thirdPartyFixed: string;
 }
 
+export interface ShopifyPanelErrors {
+  expectedMonthlyOrders?: string;
+  thirdPartyRate?: string;
+  thirdPartyFixed?: string;
+}
+
 export default function ShopifyPanel({
   state,
   onChange,
+  errors,
 }: {
   state: ShopifyPanelState;
   onChange: (patch: Partial<ShopifyPanelState>) => void;
+  errors?: ShopifyPanelErrors;
 }) {
   return (
     <div className="space-y-6">
@@ -69,8 +77,18 @@ export default function ShopifyPanel({
           />
           {state.useThirdPartyAssumption && (
             <div className="grid grid-cols-2 gap-3">
-              <NumberField label="Processor rate (%)" value={state.thirdPartyRate} onChange={(v) => onChange({ thirdPartyRate: v })} />
-              <MoneyField label="Processor fixed fee" value={state.thirdPartyFixed} onChange={(v) => onChange({ thirdPartyFixed: v })} />
+              <NumberField
+                label="Processor rate (%)"
+                value={state.thirdPartyRate}
+                onChange={(v) => onChange({ thirdPartyRate: v })}
+                error={errors?.thirdPartyRate}
+              />
+              <MoneyField
+                label="Processor fixed fee"
+                value={state.thirdPartyFixed}
+                onChange={(v) => onChange({ thirdPartyFixed: v })}
+                error={errors?.thirdPartyFixed}
+              />
             </div>
           )}
         </div>
@@ -81,6 +99,7 @@ export default function ShopifyPanel({
         value={state.expectedMonthlyOrders}
         onChange={(v) => onChange({ expectedMonthlyOrders: v })}
         placeholder="e.g. 100"
+        error={errors?.expectedMonthlyOrders}
       />
     </div>
   );
