@@ -1,5 +1,26 @@
 export type Platform = 'SHOPIFY' | 'EBAY' | 'AMAZON' | 'ETSY';
-export type Currency = 'GBP' | 'USD';
+export type Country = 'US' | 'UK' | 'AU' | 'CA' | 'DE' | 'FR' | 'IT';
+export type Currency = 'USD' | 'GBP' | 'AUD' | 'CAD' | 'EUR';
+
+export const COUNTRY_CURRENCY_MAP: Record<Country, Currency> = {
+  US: 'USD',
+  UK: 'GBP',
+  AU: 'AUD',
+  CA: 'CAD',
+  DE: 'EUR',
+  FR: 'EUR',
+  IT: 'EUR',
+};
+
+export const COUNTRY_FLAGS: Record<Country, string> = {
+  US: '🇺🇸',
+  UK: '🇬🇧',
+  AU: '🇦🇺',
+  CA: '🇨🇦',
+  DE: '🇩🇪',
+  FR: '🇫🇷',
+  IT: '🇮🇹',
+};
 
 // Shopify Specific Types
 export type ShopifyPlan = 'BASIC' | 'SHOPIFY' | 'ADVANCED';
@@ -66,7 +87,15 @@ export function calculateShopifyProfit(
 }
 
 export function formatMoney(amount: number, currency: Currency): string {
-  return new Intl.NumberFormat(currency === 'GBP' ? 'en-GB' : 'en-US', {
+  const localeMap: Record<Currency, string> = {
+    GBP: 'en-GB',
+    USD: 'en-US',
+    AUD: 'en-AU',
+    CAD: 'en-CA',
+    EUR: 'de-DE', // general Euro formatting
+  };
+  
+  return new Intl.NumberFormat(localeMap[currency], {
     style: 'currency',
     currency: currency
   }).format(amount);

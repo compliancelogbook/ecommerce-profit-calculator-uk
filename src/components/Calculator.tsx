@@ -2,14 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import { 
-  Platform, Currency, ShopifyPlan, ShopifyPaymentProcessor,
-  calculateShopifyProfit, formatMoney 
+  Platform, Country, Currency, ShopifyPlan, ShopifyPaymentProcessor,
+  calculateShopifyProfit, formatMoney, COUNTRY_CURRENCY_MAP, COUNTRY_FLAGS
 } from '../lib/calculator-logic';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Calculator() {
   const [platform, setPlatform] = useState<Platform>('SHOPIFY');
-  const [currency, setCurrency] = useState<Currency>('GBP');
+  const [country, setCountry] = useState<Country>('US');
+  const currency = COUNTRY_CURRENCY_MAP[country];
   
   // Base Inputs
   const [soldPrice, setSoldPrice] = useState<string>('100');
@@ -37,16 +38,45 @@ export default function Calculator() {
     return calculateShopifyProfit(0,0,0,0,'BASIC','SHOPIFY_PAYMENTS',false);
   }, [platform, soldPrice, itemCost, shippingCharged, shippingCost, shopifyPlan, processor, isInternational]);
 
+  const currencySymbol = useMemo(() => {
+    switch (currency) {
+      case 'GBP': return '£';
+      case 'USD': return '$';
+      case 'AUD': return 'A$';
+      case 'CAD': return 'C$';
+      case 'EUR': return '€';
+      default: return '$';
+    }
+  }, [currency]);
+
   return (
     <div className="w-full bg-[#000000] rounded-xl border border-[#333] p-0 md:p-0 relative overflow-hidden font-sans">
       
+      {/* Country / Region Selector */}
+      <div className="flex px-4 pt-4 pb-2 space-x-2 overflow-x-auto scrollbar-hide border-b border-[#111]">
+        {(Object.keys(COUNTRY_FLAGS) as Country[]).map(c => (
+          <button
+            key={c}
+            onClick={() => setCountry(c)}
+            className={`flex items-center space-x-2 px-3 py-1.5 text-sm font-medium rounded-full border transition-all whitespace-nowrap ${
+              country === c
+              ? 'bg-white text-black border-white shadow-sm'
+              : 'bg-[#0a0a0a] text-[#888] border-[#333] hover:text-[#eaeaea] hover:border-[#666]'
+            }`}
+          >
+            <span className="text-base leading-none">{COUNTRY_FLAGS[c]}</span>
+            <span>{c}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Vercel-style Platform Tabs */}
-      <div className="flex px-4 pt-4 border-b border-[#333] overflow-x-auto scrollbar-hide">
+      <div className="flex px-4 pt-2 border-b border-[#333] overflow-x-auto scrollbar-hide">
         {(['SHOPIFY', 'EBAY', 'AMAZON', 'ETSY'] as Platform[]).map(p => (
           <button
             key={p}
             onClick={() => setPlatform(p)}
-            className={`px-5 py-3 text-sm font-medium transition-all relative ${
+            className={`px-5 py-3 text-sm font-medium transition-all relative whitespace-nowrap ${
               platform === p 
               ? 'text-white' 
               : 'text-[#888] hover:text-[#eaeaea]'
@@ -71,17 +101,13 @@ export default function Calculator() {
           
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-[#eaeaea] tracking-tight">Transaction Details</h2>
-            <div className="bg-[#111] p-1 rounded-md flex border border-[#333]">
-              <button onClick={() => setCurrency('GBP')} className={`px-3 py-1 text-xs font-medium rounded ${currency === 'GBP' ? 'bg-[#333] text-white shadow-sm' : 'text-[#888] hover:text-[#eaeaea]'}`}>GBP</button>
-              <button onClick={() => setCurrency('USD')} className={`px-3 py-1 text-xs font-medium rounded ${currency === 'USD' ? 'bg-[#333] text-white shadow-sm' : 'text-[#888] hover:text-[#eaeaea]'}`}>USD</button>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#888]">Sold Price</label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-[#888] font-medium">{currency === 'GBP' ? '£' : '$'}</span>
+                <span className="absolute left-3 text-[#888] font-medium">{currencySymbol}</span>
                 <input type="number" value={soldPrice} onChange={e => setSoldPrice(e.target.value)}
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all" />
               </div>
@@ -89,7 +115,7 @@ export default function Calculator() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#888]">Item Cost</label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-[#888] font-medium">{currency === 'GBP' ? '£' : '$'}</span>
+                <span className="absolute left-3 text-[#888] font-medium">{currencySymbol}</span>
                 <input type="number" value={itemCost} onChange={e => setItemCost(e.target.value)}
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all" />
               </div>
@@ -97,7 +123,7 @@ export default function Calculator() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#888]">Shipping Charged</label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-[#888] font-medium">{currency === 'GBP' ? '£' : '$'}</span>
+                <span className="absolute left-3 text-[#888] font-medium">{currencySymbol}</span>
                 <input type="number" value={shippingCharged} onChange={e => setShippingCharged(e.target.value)}
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all" />
               </div>
@@ -105,7 +131,7 @@ export default function Calculator() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-[#888]">Actual Shipping Cost</label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-[#888] font-medium">{currency === 'GBP' ? '£' : '$'}</span>
+                <span className="absolute left-3 text-[#888] font-medium">{currencySymbol}</span>
                 <input type="number" value={shippingCost} onChange={e => setShippingCost(e.target.value)}
                   className="w-full bg-[#0a0a0a] border border-[#333] rounded-md py-2.5 pl-8 pr-4 text-[#eaeaea] text-sm focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all" />
               </div>
