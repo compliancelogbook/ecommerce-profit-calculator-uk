@@ -60,7 +60,7 @@ export function calculateAmazon(input: AmazonInput): CalculationResult {
   let referralFee = ZERO;
   let categoryLabel = 'Unsupported category';
 
-  if (category) {
+  if (category && category.schedule) {
     const { total } = applySchedule(referralBasis, category.schedule);
     referralFee = total;
     if (category.minimumFee !== undefined && referralFee.lt(category.minimumFee)) {

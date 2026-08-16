@@ -162,16 +162,61 @@ export default function MethodologyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">2026-08-16 second follow-up audit — further corrections</h2>
+          <div className="text-sm text-[#888] leading-relaxed space-y-3">
+            <p>
+              <strong className="text-[#eaeaea]">eBay: Jewellery and Watches, Parts &amp; Accessories are now split — the prior
+              &quot;open question&quot; is resolved.</strong> The previous pass flagged that Jewellery&apos;s 14.9%/£1,000/4% rate
+              increase explicitly excluded &quot;Watches, Parts &amp; Accessories&quot;, but didn&apos;t state what Watches&apos; own
+              rate actually was, so the two stayed combined pending confirmation. That confirmation has now been provided: Jewellery
+              (#281, excluding subcategories) stays at 14.9%/£1,000/4%; Watches, Parts &amp; Accessories (#260324) is a separate
+              category at 12.9% on the portion up to £750 per item, 3% above. The combined &quot;Jewellery &amp; Watches&quot; option
+              no longer exists — selecting Watches items under Jewellery&apos;s rate is no longer possible. Category ID #260324 was
+              independently cross-checked against eBay&apos;s own category browse page.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">eBay: the reduced 10p per-order fee is now tied to category selection, not a
+              free-standing toggle.</strong> The previous implementation exposed eligibility as an independent checkbox, which allowed
+              impossible combinations (e.g. applying the Collectables discount to a Jewellery listing). It has been removed. The nine
+              categories confirmed eligible for the reduction (Antiques, Art, Coins, Collectables, Dolls &amp; Bears, Pottery &amp;
+              Glass, Sports Memorabilia, Stamps, Home/Furniture/DIY) are now real, selectable entries in the same category dropdown as
+              every other category — each carries a confirmed <code className="text-[#eaeaea]">reducedPerOrderFee</code> rule, applied
+              automatically when eligible. None of these nine have a confirmed variable Final Value Fee percentage, so selecting one
+              still requires a manual FVF rate (or leaves the FVF excluded) — but the per-order-fee reduction is independently
+              confirmed and doesn&apos;t depend on that. A category with no confirmed reduction (e.g. Jewellery, Everything Else) can
+              never receive the discount, at any sale price, by construction — there is no input that can assert it.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">eBay: the per-item correction now visibly marks a partial result as partial.</strong>{' '}
+              When postage is excluded from a multi-item per-item Final Value Fee calculation, the fee line&apos;s own label now reads
+              &quot;— INCOMPLETE (postage excluded)&quot; and carries an explanatory note, in addition to the general exclusion already
+              shown — the figure is never presented as if it were a complete, exact fee.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">eBay: the main fee page still could not be fetched — four more attempts.</strong> This
+              round tried the main page under its two known URL slugs, a generic &quot;selling-fees&quot; page, and a
+              fees.ebay.co.uk subdomain that turned out not to resolve at all (DNS failure) — plus two more community-forum threads
+              that exist but sit behind a login wall. Only eBay&apos;s public community ANNOUNCEMENT pages (as opposed to forum
+              discussion threads) remain reliably fetchable, and by nature those only document specific historical changes, not
+              today&apos;s full consolidated table. Category coverage beyond what&apos;s listed below was not expanded by guessing.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-white">Coverage &amp; what&apos;s not verified</h2>
           <div className="text-sm text-[#888] leading-relaxed space-y-3">
             <p>
-              <strong className="text-[#eaeaea]">eBay category coverage is still partial.</strong> Only the categories given directly in
-              this build&apos;s specification are included (Clothes/Shoes/Accessories, Women&apos;s Bags &amp; Handbags, Jewellery &amp;
-              Watches, Mobile Phones, Smartphones, Business/Office/Industrial, Everything Else), now with per-item tier calculation and
-              official category IDs where confirmed. eBay&apos;s main fee page — the only source with the complete category table —
-              still could not be directly fetched across three attempts over two audit passes; the community-announcement pages that
-              worked only cover specific historical fee changes, not the full current table. Any other category must be entered
-              manually — the calculator will never silently apply a guessed rate.
+              <strong className="text-[#eaeaea]">eBay category coverage is still partial.</strong> Eight categories have a confirmed
+              variable Final Value Fee (Clothes/Shoes/Accessories, Women&apos;s Bags &amp; Handbags, Jewellery, Watches Parts &amp;
+              Accessories, Mobile Phones, Smartphones, Business/Office/Industrial, Everything Else — Jewellery and Watches are now
+              split, see above), with per-item tier calculation and official category IDs where confirmed. A further nine categories
+              (Antiques, Art, Coins, Collectables, Dolls &amp; Bears, Pottery &amp; Glass, Sports Memorabilia, Stamps, Home/Furniture &amp;
+              DIY) have a confirmed reduced per-order fee but no confirmed FVF percentage, so selecting one still requires a manual FVF
+              rate. eBay&apos;s main fee page — the only source with the complete category table — still could not be directly fetched
+              across seven attempts over three audit passes (see corrections above for this round&apos;s specific attempts); the
+              community pages that worked only cover specific historical changes, not the full current table. Any category not listed
+              must be entered manually — the calculator will never silently apply a guessed rate or an unearned fee reduction.
             </p>
             <p>
               <strong className="text-[#eaeaea]">Amazon category coverage: {amazonVerifiedCount} spec-verified, {amazonAuditCount} audit-verified,

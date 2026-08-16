@@ -125,7 +125,7 @@ describe('Shared engine tests', () => {
       shippingCharged: 5,
       shippingCost: 3,
       quantity: 1,
-      categoryId: 'JEWELLERY_WATCHES',
+      categoryId: 'JEWELLERY',
       region: 'US_CANADA',
       currencyConversionSelected: true,
       topRatedPremiumService: true,

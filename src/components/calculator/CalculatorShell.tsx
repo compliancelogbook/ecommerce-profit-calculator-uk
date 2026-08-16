@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
+import { EBAY_CATEGORIES } from '../../data/ebay.fees';
 import type { VatProfile } from '../../data/vat';
 import { calculateShopify } from '../../lib/engines/shopify';
 import { calculateEtsy } from '../../lib/engines/etsy';
@@ -71,7 +72,6 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     region: 'DOMESTIC',
     currencyConversionSelected: false,
     topRatedPremiumService: false,
-    qualifiesForReducedPerOrderFee: false,
   });
 
   const [amazon, setAmazon] = useState<AmazonPanelState>({
@@ -129,7 +129,10 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
   const etsyFxR = parsePositiveFxRate(etsy.usdToGbpRate);
   const etsyErrors = { usdToGbpRate: err(etsyFxR) };
 
-  const ebayManualActive = ebay.categoryId === UNSUPPORTED_CATEGORY_ID;
+  const ebaySelectedCategory = EBAY_CATEGORIES.find((c) => c.id === ebay.categoryId);
+  // Manual rate applies both to the generic "Other" fallback AND to a known category
+  // whose own FVF rate isn't confirmed (it still has a real `schedule`-less entry).
+  const ebayManualActive = ebay.categoryId === UNSUPPORTED_CATEGORY_ID || (ebaySelectedCategory !== undefined && !ebaySelectedCategory.schedule);
   const ebayManualRateR = parseManualCategoryRate(ebay.manualCategoryRate);
   const ebayErrors = { manualCategoryRate: ebayManualActive ? err(ebayManualRateR) : undefined };
 
@@ -192,7 +195,6 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
           region: ebay.region,
           currencyConversionSelected: ebay.currencyConversionSelected,
           topRatedPremiumService: ebay.topRatedPremiumService,
-          qualifiesForReducedPerOrderFee: ebay.qualifiesForReducedPerOrderFee,
           vatProfile,
         });
       case 'AMAZON':

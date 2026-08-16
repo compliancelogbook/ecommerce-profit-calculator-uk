@@ -6,11 +6,8 @@ import {
   EBAY_INTERNATIONAL_FEE_SOURCE,
   EBAY_PER_ORDER_FEE,
   EBAY_PER_ORDER_FEE_SOURCE,
-  EBAY_REDUCED_PER_ORDER_FEE,
-  EBAY_REDUCED_PER_ORDER_FEE_SOURCE,
   EBAY_REGULATORY_FEE_RATE,
   EBAY_REGULATORY_FEE_SOURCE,
-  EBAY_SOURCE,
   EBAY_TOP_RATED_DISCOUNT_RATE,
   type EbayInternationalRegion,
 } from '../../data/ebay.fees';
@@ -31,13 +28,11 @@ export interface EbayInput {
   shippingCost: number;
   quantity: number;
   categoryId: string;
-  /** Required when categoryId === UNSUPPORTED_CATEGORY_ID — a manual, clearly-labelled percentage (fraction, e.g. 0.125 = 12.5%). Must be a valid, >0 number; 0/negative/absent are all treated as "not supplied". */
+  /** Used when categoryId === UNSUPPORTED_CATEGORY_ID, or when the selected category has no confirmed FVF `schedule` — a manual, clearly-labelled percentage (fraction, e.g. 0.125 = 12.5%). Must be a valid, >0 number; 0/negative/absent are all treated as "not supplied". */
   manualCategoryRate?: number | null;
   region: EbayInternationalRegion;
   currencyConversionSelected: boolean;
   topRatedPremiumService: boolean;
-  /** Confirmed-by-user eligibility for eBay's reduced 10p (instead of 30p) per-order fee — see EBAY_REDUCED_PER_ORDER_FEE_CATEGORIES. */
-  qualifiesForReducedPerOrderFee?: boolean;
   vatProfile: VatProfile;
 }
 
@@ -76,6 +71,7 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     feeType: string;
     formula: string;
     source?: SourceRef;
+    notes?: string;
   }) {
     const vat = params.amount.times(UK_STANDARD_VAT_RATE);
     vatAmounts.push(vat);
@@ -93,11 +89,10 @@ export function calculateEbay(input: EbayInput): CalculationResult {
 
   let variableFvf = ZERO;
   let categoryLabel = 'Unsupported category';
-  let categorySource = EBAY_SOURCE;
+  let fvfIsPartial = false; // true when postage was excluded from a per-item tier basis — the FVF shown is NOT the complete exact fee.
 
-  if (category) {
+  if (category?.schedule) {
     categoryLabel = category.officialCategoryId ? `${category.label} (#${category.officialCategoryId})` : category.label;
-    categorySource = category.source;
 
     // Tiered/threshold schedules calculated PER ITEM must be evaluated once
     // per unit and then multiplied — applying them to the combined order
@@ -113,14 +108,33 @@ export function calculateEbay(input: EbayInput): CalculationResult {
       const { total: perItemFee } = applySchedule(perItemBasis, category.schedule);
       variableFvf = perItemFee.times(qty);
       if (qty > 1 && input.shippingCharged > 0) {
+        fvfIsPartial = true;
         exclusions.push(
-          `Shipping charged (£${input.shippingCharged.toFixed(2)}) was excluded from the per-item Final Value Fee tier calculation for ${categoryLabel} — how eBay allocates postage across multiple items for tier purposes is not confirmed by any primary source found, so it was not guessed. The per-order regulatory/international/conversion fees below still include it.`
+          `The Final Value Fee shown for ${categoryLabel} is INCOMPLETE, not a complete exact fee: shipping charged (£${input.shippingCharged.toFixed(2)}) was excluded from the per-item tier calculation because how eBay allocates postage across multiple items for tier purposes is not confirmed by any primary source found, so it was not guessed. The per-order regulatory/international/conversion fees below still include the full postage charged.`
         );
         signals.push('EXCLUDES_VARIABLE_FEES');
       }
     } else {
       const { total } = applySchedule(totalSaleBasis, category.schedule);
       variableFvf = total;
+    }
+  } else if (category && !category.schedule) {
+    // A known, structured category (has an official ID / a confirmed reduced
+    // per-order fee) but its variable FVF rate itself was not confirmed —
+    // requires the same manual-rate fallback as an unsupported category,
+    // while still keeping the category's real identity for labelling.
+    categoryLabel = category.officialCategoryId ? `${category.label} (#${category.officialCategoryId})` : category.label;
+    if (isValidManualRate(input.manualCategoryRate)) {
+      variableFvf = percentOf(totalSaleBasis, input.manualCategoryRate);
+      assumptions.push(
+        `${categoryLabel}: Final Value Fee percentage is not confirmed for this category — calculated using a manually entered rate of ${(input.manualCategoryRate * 100).toFixed(1)}%.`
+      );
+      signals.push('ASSUMPTION_DEPENDENT');
+    } else {
+      exclusions.push(
+        `${categoryLabel}: no confirmed Final Value Fee percentage and no valid manual rate was supplied — Final Value Fee excluded rather than guessed. (Its reduced per-order fee, if applicable, is still calculated below — that part is confirmed independently.)`
+      );
+      signals.push('EXCLUDES_VARIABLE_FEES');
     }
   } else if (input.categoryId === UNSUPPORTED_CATEGORY_ID && isValidManualRate(input.manualCategoryRate)) {
     variableFvf = percentOf(totalSaleBasis, input.manualCategoryRate);
@@ -146,19 +160,27 @@ export function calculateEbay(input: EbayInput): CalculationResult {
 
   pushLine({
     id: 'ebay-variable-fvf',
-    label: `Final Value Fee — ${categoryLabel}${input.topRatedPremiumService && discountApplied.gt(0) ? ' (after 10% Top Rated discount)' : ''}`,
+    label: `Final Value Fee — ${categoryLabel}${input.topRatedPremiumService && discountApplied.gt(0) ? ' (after 10% Top Rated discount)' : ''}${fvfIsPartial ? ' — INCOMPLETE (postage excluded)' : ''}`,
     amount: variableFvf,
     category: 'transaction',
     feeType: 'final_value_fee',
-    formula: category ? (category.source.formula ?? categoryLabel) : categoryLabel,
-    source: category ? categorySource : undefined,
+    formula: category?.source.formula ?? categoryLabel,
+    source: category?.source,
+    notes: fvfIsPartial
+      ? 'This figure excludes any postage-related portion of the per-item Final Value Fee for quantity > 1 — it is not a complete exact fee. See exclusions.'
+      : undefined,
   });
 
-  const saleQualifiesForReduction = Boolean(input.qualifiesForReducedPerOrderFee) && totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold);
+  // Reduced per-order fee eligibility comes ENTIRELY from the selected category's own
+  // confirmed data — there is no user-assertable toggle. A manual/unsupported category
+  // (no `category` match, or UNSUPPORTED_CATEGORY_ID) can never receive this reduction,
+  // because eligibility cannot be established for an arbitrary manual entry.
+  const reducedFeeRule = category?.reducedPerOrderFee;
+  const saleQualifiesForReduction = Boolean(reducedFeeRule) && totalSaleBasis.lte(reducedFeeRule!.atOrBelowThreshold);
   const perOrderFee = money(
     category?.perOrderFeeOverride ??
       (saleQualifiesForReduction
-        ? EBAY_REDUCED_PER_ORDER_FEE
+        ? reducedFeeRule!.fee
         : totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold)
           ? EBAY_PER_ORDER_FEE.atOrBelow
           : EBAY_PER_ORDER_FEE.above)
@@ -166,13 +188,13 @@ export function calculateEbay(input: EbayInput): CalculationResult {
   pushLine({
     id: 'ebay-per-order',
     label: saleQualifiesForReduction
-      ? 'Per-order fee (reduced rate, sale ≤ £10, qualifying category)'
+      ? `Per-order fee (reduced rate — ${categoryLabel} qualifies, sale ≤ £${reducedFeeRule!.atOrBelowThreshold})`
       : `Per-order fee (${totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? `sale ≤ £${EBAY_PER_ORDER_FEE.threshold}` : `sale > £${EBAY_PER_ORDER_FEE.threshold}`})`,
     amount: perOrderFee,
     category: 'transaction',
     feeType: 'per_order_fee',
-    formula: saleQualifiesForReduction ? (EBAY_REDUCED_PER_ORDER_FEE_SOURCE.formula ?? '') : (EBAY_PER_ORDER_FEE_SOURCE.formula ?? ''),
-    source: saleQualifiesForReduction ? EBAY_REDUCED_PER_ORDER_FEE_SOURCE : EBAY_PER_ORDER_FEE_SOURCE,
+    formula: saleQualifiesForReduction ? (reducedFeeRule!.source.formula ?? '') : (EBAY_PER_ORDER_FEE_SOURCE.formula ?? ''),
+    source: saleQualifiesForReduction ? reducedFeeRule!.source : EBAY_PER_ORDER_FEE_SOURCE,
   });
 
   const regulatoryFee = percentOf(totalSaleBasis, EBAY_REGULATORY_FEE_RATE);

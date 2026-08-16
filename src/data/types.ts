@@ -70,7 +70,16 @@ export interface CategoryFeeRule {
   label: string;
   /** The platform's own official category ID, where confirmed by primary evidence (e.g. eBay category #281). */
   officialCategoryId?: string;
-  schedule: PercentageSchedule;
+  /**
+   * Present only when the variable fee rate itself has been confirmed for
+   * this category. Absent (undefined) means the variable fee is NOT
+   * auto-calculable here — manual entry is required — even though other
+   * confirmed facts about the category (its official ID, a reduced
+   * per-order fee, etc.) may still be known and used. This lets a category
+   * be "structured but FVF-unconfirmed" rather than forcing an all-or-
+   * nothing choice between full auto-calculation and total exclusion.
+   */
+  schedule?: PercentageSchedule;
   /**
    * For TIERED/THRESHOLD_FLAT schedules only: whether the threshold is
    * evaluated against a single item's price (PER_ITEM — each unit in a
@@ -86,6 +95,13 @@ export interface CategoryFeeRule {
   minimumFee?: number;
   /** Overrides the platform-default per-order fee for this category, if the platform defines one. */
   perOrderFeeOverride?: number;
+  /**
+   * A confirmed, category-tied reduced per-order fee (e.g. eBay's 10p
+   * instead of 30p for qualifying Collectables/Home categories). Eligibility
+   * is derived ENTIRELY from the selected category matching one of these
+   * rules — there is deliberately no free-standing user-assertable toggle.
+   */
+  reducedPerOrderFee?: { fee: number; atOrBelowThreshold: number; source: SourceRef };
   source: SourceRef;
 }
 

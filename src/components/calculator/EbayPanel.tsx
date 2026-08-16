@@ -1,6 +1,6 @@
 "use client";
 
-import { EBAY_CATEGORIES, EBAY_REDUCED_PER_ORDER_FEE_CATEGORIES, type EbayInternationalRegion } from '../../data/ebay.fees';
+import { EBAY_CATEGORIES, type EbayInternationalRegion } from '../../data/ebay.fees';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
 import { CheckboxField, NumberField, SelectField } from './inputs';
 
@@ -10,7 +10,6 @@ export interface EbayPanelState {
   region: EbayInternationalRegion;
   currencyConversionSelected: boolean;
   topRatedPremiumService: boolean;
-  qualifiesForReducedPerOrderFee: boolean;
 }
 
 const REGION_OPTIONS: { value: EbayInternationalRegion; label: string }[] = [
@@ -19,8 +18,6 @@ const REGION_OPTIONS: { value: EbayInternationalRegion; label: string }[] = [
   { value: 'US_CANADA', label: 'US / Canada' },
   { value: 'OTHER', label: 'Other' },
 ];
-
-const REDUCED_FEE_CATEGORY_LABELS = EBAY_REDUCED_PER_ORDER_FEE_CATEGORIES.map((c) => c.label).join(', ');
 
 export interface EbayPanelErrors {
   manualCategoryRate?: string;
@@ -38,10 +35,15 @@ export default function EbayPanel({
   const categoryOptions = [
     ...EBAY_CATEGORIES.map((c) => ({
       value: c.id,
-      label: c.officialCategoryId ? `${c.label} (#${c.officialCategoryId})` : c.label,
+      label:
+        (c.officialCategoryId ? `${c.label} (#${c.officialCategoryId})` : c.label) +
+        (!c.schedule ? ' — FVF rate not confirmed, enter manually' : ''),
     })),
     { value: UNSUPPORTED_CATEGORY_ID, label: 'Other (not in verified schedule — enter manually)' },
   ];
+
+  const selectedCategory = EBAY_CATEGORIES.find((c) => c.id === state.categoryId);
+  const needsManualRate = state.categoryId === UNSUPPORTED_CATEGORY_ID || (selectedCategory !== undefined && !selectedCategory.schedule);
 
   return (
     <div className="space-y-6">
@@ -54,7 +56,14 @@ export default function EbayPanel({
 
       <SelectField label="Category" value={state.categoryId} onChange={(v) => onChange({ categoryId: v })} options={categoryOptions} />
 
-      {state.categoryId === UNSUPPORTED_CATEGORY_ID && (
+      {selectedCategory && !selectedCategory.schedule && (
+        <p className="text-[11px] text-[#666] -mt-4">
+          The Final Value Fee percentage for {selectedCategory.label} was not confirmed, so it needs a manual rate below. Its reduced
+          per-order fee (if eligible) is still calculated automatically — that part is confirmed independently of the FVF rate.
+        </p>
+      )}
+
+      {needsManualRate && (
         <NumberField
           label="Manual Final Value Fee rate (%)"
           value={state.manualCategoryRate}
@@ -80,12 +89,12 @@ export default function EbayPanel({
         onChange={(v) => onChange({ topRatedPremiumService: v })}
       />
 
-      <CheckboxField
-        label="Qualifies for reduced 10p per-order fee"
-        description={`Applies to a sale ≤ £10 in: ${REDUCED_FEE_CATEGORY_LABELS}. Only tick this if your listing is actually in one of these categories — it is independent of the Final Value Fee category selected above.`}
-        checked={state.qualifiesForReducedPerOrderFee}
-        onChange={(v) => onChange({ qualifiesForReducedPerOrderFee: v })}
-      />
+      {selectedCategory?.reducedPerOrderFee && (
+        <p className="text-[11px] text-[#666]">
+          {selectedCategory.label} qualifies for eBay&apos;s reduced £0.10 per-order fee on sales ≤ £
+          {selectedCategory.reducedPerOrderFee.atOrBelowThreshold} — applied automatically, no action needed.
+        </p>
+      )}
     </div>
   );
 }
