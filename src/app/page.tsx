@@ -1,5 +1,6 @@
-import Calculator from '../components/Calculator';
+import CalculatorShell from '../components/calculator/CalculatorShell';
 import AdPlaceholder from '../components/AdPlaceholder';
+import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -44,9 +45,16 @@ export default function Home() {
         </header>
 
         <main className="w-full animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
-          <Calculator />
+          <CalculatorShell />
         </main>
-        
+
+        <nav className="w-full mt-10 flex flex-wrap justify-center gap-3 text-sm">
+          <Link href="/shopify-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Shopify Fee Calculator</Link>
+          <Link href="/etsy-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Etsy Fee Calculator</Link>
+          <Link href="/ebay-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">eBay Fee Calculator</Link>
+          <Link href="/amazon-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Amazon Fee Calculator</Link>
+        </nav>
+
         {/* Mobile Rectangle Ad */}
         <div className="w-full max-w-sm mx-auto mt-12 sm:hidden">
           <AdPlaceholder text="300x250 RECTANGLE AD" height="h-[250px]" />
@@ -55,6 +63,7 @@ export default function Home() {
         <footer className="mt-24 pt-8 border-t border-[#333] w-full text-[#666] text-sm flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-medium">© {new Date().getFullYear()} Compliance Logbook. All rights reserved.</p>
           <div className="flex space-x-6">
+            <Link href="/methodology" className="hover:text-[#eaeaea] transition-colors">Methodology</Link>
             <a href="#" className="hover:text-[#eaeaea] transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-[#eaeaea] transition-colors">Terms of Service</a>
             <a href="#" className="hover:text-[#eaeaea] transition-colors">Contact</a>
