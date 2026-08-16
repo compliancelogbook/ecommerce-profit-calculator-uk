@@ -8,6 +8,21 @@ export default function Home() {
       {/* Glow Effect matching Vercel */}
       <div className="absolute top-[-150px] left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-white opacity-[0.03] blur-[100px] rounded-[100%] pointer-events-none"></div>
 
+      {/* Login / Account Button */}
+      <div className="absolute top-6 right-6 md:top-8 md:right-8 z-50">
+        <button 
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#111] border border-[#333] text-[#888] hover:text-white hover:border-[#555] hover:bg-[#1a1a1a] transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#555] focus:ring-offset-2 focus:ring-offset-black"
+          aria-label="User Account"
+          title="Sign In / Save Listings"
+        >
+          {/* Premium lightweight SVG Icon (similar to Lucide/Feather) */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
+      </div>
+
       {/* Top Banner Ad */}
       <div className="w-full max-w-4xl mx-auto mb-12 hidden sm:block">
         <AdPlaceholder text="728x90 LEADERBOARD AD" />
