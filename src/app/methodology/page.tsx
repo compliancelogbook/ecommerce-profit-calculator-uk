@@ -2,13 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SHOPIFY_SOURCE } from '../../data/shopify.fees';
 import { ETSY_SOURCES } from '../../data/etsy.fees';
-import { EBAY_SOURCE } from '../../data/ebay.fees';
+import { EBAY_CATEGORIES, EBAY_SOURCE, EBAY_SOURCE_2026_08_04 } from '../../data/ebay.fees';
 import { AMAZON_CATEGORIES, AMAZON_SOURCE } from '../../data/amazon.fees';
 import { UK_VAT_SOURCE } from '../../data/vat';
 
 const amazonVerifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'SPEC_VERIFIED').length;
 const amazonAuditCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'AUDIT_VERIFIED').length;
 const amazonUnverifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'AUTOMATED_UNVERIFIED').length;
+const ebayCategoryCount = EBAY_CATEGORIES.length;
+const ebayWithReducedFeeCount = EBAY_CATEGORIES.filter((c) => c.reducedPerOrderFee).length;
 
 export const metadata: Metadata = {
   title: 'Methodology & Sources | Compliance Logbook',
@@ -50,7 +52,12 @@ export default function MethodologyPage() {
             <SourceRow label="Etsy: Fees and Taxes" url={ETSY_SOURCES.feesAndTaxes.url} verifiedAt={ETSY_SOURCES.feesAndTaxes.verifiedAt} />
             <SourceRow label="Etsy: Payment Processing Fees" url={ETSY_SOURCES.paymentProcessing.url} verifiedAt={ETSY_SOURCES.paymentProcessing.verifiedAt} />
             <SourceRow label="Etsy: Regulatory Operating Fee" url={ETSY_SOURCES.regulatoryOperatingFee.url} verifiedAt={ETSY_SOURCES.regulatoryOperatingFee.verifiedAt} />
-            <SourceRow label="eBay UK: Store Selling Fees" url={EBAY_SOURCE.url} verifiedAt={EBAY_SOURCE.verifiedAt} />
+            <SourceRow label="eBay UK: Store Selling Fees (original spec examples)" url={EBAY_SOURCE.url} verifiedAt={EBAY_SOURCE.verifiedAt} />
+            <SourceRow
+              label="eBay UK: Fees for business sellers (complete category schedule, page dated 4 Aug 2026)"
+              url={EBAY_SOURCE_2026_08_04.url}
+              verifiedAt={EBAY_SOURCE_2026_08_04.verifiedAt}
+            />
             <SourceRow label="Amazon UK: Pricing (verified categories)" url={AMAZON_SOURCE.url} verifiedAt={AMAZON_SOURCE.verifiedAt} />
             <SourceRow label="UK standard VAT rate (HMRC, statutory)" url={UK_VAT_SOURCE.url} verifiedAt={null} />
           </ul>
@@ -204,19 +211,55 @@ export default function MethodologyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">2026-08-16 third audit pass — complete eBay category schedule</h2>
+          <div className="text-sm text-[#888] leading-relaxed space-y-3">
+            <p>
+              <strong className="text-[#eaeaea]">A complete official-page capture was supplied directly and implemented in full.</strong>{' '}
+              After three rounds of failed automated fetch attempts, a complete rendered capture of eBay&apos;s official UK Business
+              Seller fees page (structured JSON table transcription cross-checked line-by-line against the full rendered text — both
+              agree exactly) was provided directly. Every row in that page&apos;s &quot;Final value fees by category&quot; table has been
+              implemented: <strong className="text-[#eaeaea]">{ebayCategoryCount} categories and subcategories</strong> in total, each
+              with its official category ID, exact rate(s), threshold(s) and per-item/per-order basis, taken directly from the source
+              with nothing inferred or extrapolated. No further fetch attempts were made this round, per instruction.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">The nine reduced-per-order-fee categories now also have a confirmed FVF rate.</strong>{' '}
+              Antiques, Art, Coins, Collectables, Dolls &amp; Bears, Pottery &amp; Glass, Sports Memorabilia, Stamps and Home, Furniture
+              &amp; DIY previously required a manual FVF entry (their per-order-fee eligibility was confirmed, but not their FVF
+              percentage). This capture confirms real rates for all nine — every one of their official category IDs cross-checks exactly
+              against the IDs found via community announcements in the prior audit pass, corroborating both sources.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">A new basis rule was found and implemented: threshold determination that excludes
+              postage.</strong> The Trainers subcategories (Men&apos;s and Women&apos;s Shoes &gt; Trainers) charge 11.9% below a £100
+              item price and 7% at £100 or more — and the source explicitly states &quot;the item selling price excludes postage, and
+              any other additional fees or taxes&quot;. This is a confirmed rule, modelled distinctly from the general
+              per-item-postage-exclusion used elsewhere (which is an unconfirmed-allocation limitation for quantity &gt; 1, not a
+              published rule) — a Trainers calculation is never marked incomplete, because nothing about it is uncertain.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">One verbatim source oddity was preserved, not corrected.</strong> The official table
+              lists &quot;Tyres&quot; twice, against two different category IDs (#179680 and #124313) sharing the same rate — both the
+              JSON and the rendered text show this identically. Rather than assume one is an error and drop it, both are encoded as
+              separate, independently selectable entries, per the instruction not to infer anything absent from the source.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Still explicitly out of scope:</strong> the Classified Ad listing format (no FVF
+              applies to it at all), listing-time upgrade fees (Reserve Price, Subtitle, Gallery Plus, etc.), the £14 dispute fee, and
+              seller-performance-based fee penalties — none of these are calculated by this build, consistent with its existing scope.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-white">Coverage &amp; what&apos;s not verified</h2>
           <div className="text-sm text-[#888] leading-relaxed space-y-3">
             <p>
-              <strong className="text-[#eaeaea]">eBay category coverage is still partial.</strong> Eight categories have a confirmed
-              variable Final Value Fee (Clothes/Shoes/Accessories, Women&apos;s Bags &amp; Handbags, Jewellery, Watches Parts &amp;
-              Accessories, Mobile Phones, Smartphones, Business/Office/Industrial, Everything Else — Jewellery and Watches are now
-              split, see above), with per-item tier calculation and official category IDs where confirmed. A further nine categories
-              (Antiques, Art, Coins, Collectables, Dolls &amp; Bears, Pottery &amp; Glass, Sports Memorabilia, Stamps, Home/Furniture &amp;
-              DIY) have a confirmed reduced per-order fee but no confirmed FVF percentage, so selecting one still requires a manual FVF
-              rate. eBay&apos;s main fee page — the only source with the complete category table — still could not be directly fetched
-              across seven attempts over three audit passes (see corrections above for this round&apos;s specific attempts); the
-              community pages that worked only cover specific historical changes, not the full current table. Any category not listed
-              must be entered manually — the calculator will never silently apply a guessed rate or an unearned fee reduction.
+              <strong className="text-[#eaeaea]">eBay category coverage: {ebayCategoryCount} categories, all with a confirmed Final Value
+              Fee.</strong> The complete published category schedule from the 4 August 2026 official page is implemented, including
+              {' '}{ebayWithReducedFeeCount} categories that also carry a confirmed reduced 10p per-order fee. Any category genuinely not
+              on eBay&apos;s published table (e.g. a brand-new or regional category not yet captured) still requires a manually entered
+              rate — the calculator will never silently apply a guessed rate or an unearned fee reduction.
             </p>
             <p>
               <strong className="text-[#eaeaea]">Amazon category coverage: {amazonVerifiedCount} spec-verified, {amazonAuditCount} audit-verified,

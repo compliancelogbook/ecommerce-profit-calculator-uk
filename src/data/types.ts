@@ -91,6 +91,17 @@ export interface CategoryFeeRule {
    * hasn't been separately confirmed).
    */
   tierBasis?: 'PER_ITEM' | 'PER_ORDER';
+  /**
+   * Confirmed per category from primary evidence: the FVF rate/threshold
+   * for this category is based on the item's own selling price ONLY —
+   * postage, other fees and taxes are never included, at any quantity
+   * (e.g. eBay's Trainers subcategories: "7% if item selling price is
+   * £100 or more... excludes postage"). This is a CONFIRMED rule, distinct
+   * from the general per-item postage exclusion applied for quantity > 1
+   * elsewhere (which is an unconfirmed-allocation limitation, not a
+   * published rule) — a line using this flag is never marked incomplete.
+   */
+  thresholdExcludesPostage?: boolean;
   /** Minimum fee floor in pounds, applied after the percentage schedule. */
   minimumFee?: number;
   /** Overrides the platform-default per-order fee for this category, if the platform defines one. */

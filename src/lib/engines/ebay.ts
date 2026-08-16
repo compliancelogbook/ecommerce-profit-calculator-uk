@@ -89,7 +89,8 @@ export function calculateEbay(input: EbayInput): CalculationResult {
 
   let variableFvf = ZERO;
   let categoryLabel = 'Unsupported category';
-  let fvfIsPartial = false; // true when postage was excluded from a per-item tier basis — the FVF shown is NOT the complete exact fee.
+  let fvfIsPartial = false; // true when postage was excluded from a per-item tier basis due to an UNCONFIRMED allocation — the FVF shown is NOT the complete exact fee.
+  let fvfExcludesPostageByRule = false; // true when the category's OWN published rule excludes postage from its basis — a confirmed, complete calculation, not a limitation.
 
   if (category?.schedule) {
     categoryLabel = category.officialCategoryId ? `${category.label} (#${category.officialCategoryId})` : category.label;
@@ -99,15 +100,26 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     // total lets multiple items collectively cross a threshold that none
     // of them crosses individually, which is wrong (2026-08-16 audit fix).
     if (category.tierBasis === 'PER_ITEM' && category.schedule.kind !== 'FLAT') {
-      // For a single item, "per item" and "per order" are the same basis — eBay's own
-      // "total amount of the sale" definition includes postage, unambiguous here.
-      // For multiple items, postage's allocation across items is NOT confirmed by any
-      // primary source found, so it is deliberately excluded from the per-item tier
-      // basis (see exclusion pushed below) rather than invented (e.g. split evenly).
-      const perItemBasis = qty === 1 ? money(input.itemPrice).plus(input.shippingCharged) : money(input.itemPrice);
+      let perItemBasis: Money;
+      if (category.thresholdExcludesPostage) {
+        // A small number of categories (e.g. Trainers) have a CONFIRMED published rule that their
+        // basis is the item's own selling price only, excluding postage — at any quantity. This is
+        // a complete, correct calculation, not an unconfirmed-allocation limitation.
+        perItemBasis = money(input.itemPrice);
+        fvfExcludesPostageByRule = true;
+      } else if (qty === 1) {
+        // For a single item, "per item" and "per order" are the same basis — eBay's own
+        // "total amount of the sale" definition includes postage, unambiguous here.
+        perItemBasis = money(input.itemPrice).plus(input.shippingCharged);
+      } else {
+        // For multiple items, postage's allocation across items is NOT confirmed by any
+        // primary source found, so it is deliberately excluded from the per-item tier
+        // basis (see exclusion pushed below) rather than invented (e.g. split evenly).
+        perItemBasis = money(input.itemPrice);
+      }
       const { total: perItemFee } = applySchedule(perItemBasis, category.schedule);
       variableFvf = perItemFee.times(qty);
-      if (qty > 1 && input.shippingCharged > 0) {
+      if (!fvfExcludesPostageByRule && qty > 1 && input.shippingCharged > 0) {
         fvfIsPartial = true;
         exclusions.push(
           `The Final Value Fee shown for ${categoryLabel} is INCOMPLETE, not a complete exact fee: shipping charged (£${input.shippingCharged.toFixed(2)}) was excluded from the per-item tier calculation because how eBay allocates postage across multiple items for tier purposes is not confirmed by any primary source found, so it was not guessed. The per-order regulatory/international/conversion fees below still include the full postage charged.`
@@ -168,7 +180,9 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     source: category?.source,
     notes: fvfIsPartial
       ? 'This figure excludes any postage-related portion of the per-item Final Value Fee for quantity > 1 — it is not a complete exact fee. See exclusions.'
-      : undefined,
+      : fvfExcludesPostageByRule
+        ? 'This category\'s published rate is based on the item\'s own selling price only — postage is excluded by eBay\'s own rule for this category, not a limitation of this calculation.'
+        : undefined,
   });
 
   // Reduced per-order fee eligibility comes ENTIRELY from the selected category's own

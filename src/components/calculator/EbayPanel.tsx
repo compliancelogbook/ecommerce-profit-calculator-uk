@@ -49,8 +49,8 @@ export default function EbayPanel({
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-[#eaeaea] tracking-tight">eBay UK Business Configuration</h2>
       <p className="text-xs text-[#888] leading-relaxed">
-        Only a subset of eBay&apos;s full category schedule is verified in this build. eBay&apos;s live category page could not be
-        directly fetched — categories outside this list require a manually entered rate rather than a guess. Tiered categories are
+        The complete published eBay UK Business category schedule (74 categories and subcategories) is implemented below. Any category
+        genuinely not on eBay&apos;s published table still requires a manually entered rate rather than a guess. Tiered categories are
         calculated per item, matching eBay&apos;s own published wording.
       </p>
 
