@@ -90,9 +90,10 @@ describe('Amazon UK FBM acceptance tests', () => {
       expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
     });
 
-    it('an AUTOMATED_UNVERIFIED category still surfaces as at least ASSUMPTION_DEPENDENT-worthy information, but overall confidence stays EXCLUDES_VARIABLE_FEES (worst-of)', () => {
+    it('an AUDIT_VERIFIED category (no longer AUTOMATED_UNVERIFIED) does not add an extra unverified-category assumption', () => {
       const r = calculateAmazon({ ...base, categoryId: 'BOOKS', itemPrice: 20 });
-      expect(r.assumptions.some((a) => a.includes('automated fetch'))).toBe(true);
+      expect(r.assumptions.some((a) => a.includes('automated fetch'))).toBe(false);
+      // Still EXCLUDES_VARIABLE_FEES overall — that signal comes from referral-fee VAT being excluded on every Amazon calc, not category verification.
       expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
     });
   });
@@ -112,32 +113,73 @@ describe('Amazon UK FBM acceptance tests', () => {
     });
   });
 
-  describe('2026-08-16 audit: categories with an unverified threshold mechanic were removed, not guessed', () => {
-    const removedIds = [
-      'BABY_PRODUCTS',
-      'BABY_PUSHCHAIRS_SAFETY_EQUIPMENT',
-      'REUSABLE_WORK_SAFETY_GLOVES',
-      'CLOTHING_ACCESSORIES',
-      'ELECTRONIC_ACCESSORIES',
-      'PRINTER_SCANNER_ACCESSORIES',
-      'FURNITURE',
-      'GROCERY_GOURMET',
-      'PET_CLOTHING_FOOD',
-      'VITAMINS_MINERALS_SUPPLEMENTS',
-    ];
+  describe('2026-08-16 follow-up audit: previously-removed categories restored after individual confirmation', () => {
+    // Each of these was removed in the prior audit pass because its marginal-vs-whole-amount
+    // mechanic was unconfirmed. A follow-up audit fetched each category BY NAME and quoted its
+    // literal published wording, resolving the mechanic for every one of them — see
+    // AMAZON_SOURCE_AUDIT in src/data/amazon.fees.ts for the methodology.
 
-    it.each(removedIds)('%s is no longer an auto-calculable category', (id) => {
-      expect(AMAZON_CATEGORIES.find((c) => c.id === id)).toBeUndefined();
-      const r = calculateAmazon({ ...base, categoryId: id });
-      expect(line(r, 'amazon-referral').amountExVat).toBe(0);
-      expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+    it('marginal (portion-based) categories: Furniture, Electronic Accessories, Printer & Scanner Accessories', () => {
+      const furniture = calculateAmazon({ ...base, categoryId: 'FURNITURE', itemPrice: 200 });
+      // 15% on the portion up to £175, 10% on the portion above -> 175*0.15 + 25*0.10 = 26.25 + 2.5 = 28.75
+      expect(line(furniture, 'amazon-referral').amountExVat).toBeCloseTo(175 * 0.15 + 25 * 0.1, 6);
+
+      const electronics = calculateAmazon({ ...base, categoryId: 'ELECTRONIC_ACCESSORIES', itemPrice: 150 });
+      // 15% on the portion up to £100, 8% on the portion above -> 100*0.15 + 50*0.08 = 15 + 4 = 19
+      expect(line(electronics, 'amazon-referral').amountExVat).toBeCloseTo(100 * 0.15 + 50 * 0.08, 6);
+
+      const printer = calculateAmazon({ ...base, categoryId: 'PRINTER_SCANNER_ACCESSORIES', itemPrice: 150 });
+      expect(line(printer, 'amazon-referral').amountExVat).toBeCloseTo(100 * 0.15 + 50 * 0.08, 6);
     });
 
-    it('every remaining category has an independently justified schedule kind (SPEC_VERIFIED, AUDIT_VERIFIED, or FLAT AUTOMATED_UNVERIFIED)', () => {
+    it('whole-price threshold categories: Baby Products, Baby Pushchairs, Reusable Gloves, Grocery, Pet Clothing, Vitamins', () => {
+      for (const id of ['BABY_PRODUCTS', 'BABY_PUSHCHAIRS_SAFETY_EQUIPMENT', 'REUSABLE_WORK_SAFETY_GLOVES']) {
+        const within = calculateAmazon({ ...base, categoryId: id, itemPrice: 10 });
+        expect(line(within, 'amazon-referral').amountExVat, id).toBeCloseTo(10 * 0.08, 6);
+        const above = calculateAmazon({ ...base, categoryId: id, itemPrice: 20 });
+        // Whole-amount: 20 * 0.15 = 3.00, NOT a blend (10*0.08 + 10*0.15 = 2.30).
+        expect(line(above, 'amazon-referral').amountExVat, id).toBeCloseTo(20 * 0.15, 6);
+      }
+      for (const id of ['GROCERY_GOURMET', 'PET_CLOTHING_FOOD', 'VITAMINS_MINERALS_SUPPLEMENTS']) {
+        const within = calculateAmazon({ ...base, categoryId: id, itemPrice: 10 });
+        expect(line(within, 'amazon-referral').amountExVat, id).toBeCloseTo(10 * 0.05, 6);
+        const above = calculateAmazon({ ...base, categoryId: id, itemPrice: 20 });
+        expect(line(above, 'amazon-referral').amountExVat, id).toBeCloseTo(20 * 0.15, 6);
+      }
+    });
+
+    it('Clothing & Accessories: whole-price 3-tier (5% / 10% / 15%)', () => {
+      const tier1 = calculateAmazon({ ...base, categoryId: 'CLOTHING_ACCESSORIES', itemPrice: 15 });
+      expect(line(tier1, 'amazon-referral').amountExVat).toBeCloseTo(15 * 0.05, 6);
+      const tier2 = calculateAmazon({ ...base, categoryId: 'CLOTHING_ACCESSORIES', itemPrice: 18 });
+      expect(line(tier2, 'amazon-referral').amountExVat).toBeCloseTo(18 * 0.1, 6);
+      const tier3 = calculateAmazon({ ...base, categoryId: 'CLOTHING_ACCESSORIES', itemPrice: 25 });
+      expect(line(tier3, 'amazon-referral').amountExVat).toBeCloseTo(25 * 0.15, 6);
+    });
+  });
+
+  describe('2026-08-16 follow-up audit: every enabled category is individually verified', () => {
+    it('every category in AMAZON_CATEGORIES is SPEC_VERIFIED or AUDIT_VERIFIED — never AUTOMATED_UNVERIFIED', () => {
       for (const cat of AMAZON_CATEGORIES) {
-        const isFlatOrJustified =
-          cat.schedule.kind === 'FLAT' || cat.source.verificationStatus === 'SPEC_VERIFIED' || cat.source.verificationStatus === 'AUDIT_VERIFIED';
-        expect(isFlatOrJustified, `${cat.id} has an unjustified multi-bracket schedule`).toBe(true);
+        expect(
+          ['SPEC_VERIFIED', 'AUDIT_VERIFIED'].includes(cat.source.verificationStatus),
+          `${cat.id} has verification status "${cat.source.verificationStatus}" — must be SPEC_VERIFIED or AUDIT_VERIFIED`
+        ).toBe(true);
+      }
+    });
+
+    it('fails if an AUTOMATED_UNVERIFIED category is ever auto-selectable again', () => {
+      const unverified = AMAZON_CATEGORIES.find((c) => c.source.verificationStatus === 'AUTOMATED_UNVERIFIED');
+      expect(unverified, unverified ? `${unverified.id} is AUTOMATED_UNVERIFIED and must not be auto-selectable` : undefined).toBeUndefined();
+    });
+
+    it('every category has a verified rate, a minimum-fee statement (a number or explicit absence), and a formula description', () => {
+      for (const cat of AMAZON_CATEGORIES) {
+        expect(cat.source.formula, `${cat.id} is missing a formula description`).toBeTruthy();
+        // `minimumFee` is either a number (has a minimum) or undefined (confirmed "not applicable") — never silently unset by omission alone.
+        expect(cat.minimumFee === undefined || typeof cat.minimumFee === 'number', `${cat.id} minimumFee must be a number or undefined`).toBe(
+          true
+        );
       }
     });
   });

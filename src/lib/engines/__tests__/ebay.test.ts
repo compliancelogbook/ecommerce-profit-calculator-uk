@@ -132,4 +132,81 @@ describe('eBay UK Business acceptance tests', () => {
     expect(() => calculateEbay({ ...base, quantity: 0 })).toThrow();
     expect(() => calculateEbay({ ...base, quantity: 1.5 })).toThrow();
   });
+
+  describe('2026-08-16 follow-up audit: per-item threshold calculation', () => {
+    it("the auditor's exact example: two £800 Jewellery items must NOT be combined into one £1,600 basis", () => {
+      const r = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 800, quantity: 2 });
+      // Each item individually stays below the £1,000 threshold, so each is charged 14.9% in full.
+      const perItemFee = 800 * 0.149;
+      expect(line(r, 'ebay-variable-fvf').amountExVat).toBeCloseTo(perItemFee * 2, 6);
+      // The old (wrong) combined-basis calculation would have given 1000*0.149 + 600*0.04 = 173, which is LESS
+      // than the correct per-item answer — confirm we are not accidentally reproducing that bug.
+      const wrongCombinedAnswer = 1000 * 0.149 + 600 * 0.04;
+      expect(line(r, 'ebay-variable-fvf').amountExVat).not.toBeCloseTo(wrongCombinedAnswer, 2);
+    });
+
+    it('quantity 1, below and above the tier boundary, is unaffected by the per-item fix (per-item basis === per-order basis)', () => {
+      const below = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 900, quantity: 1 });
+      expect(line(below, 'ebay-variable-fvf').amountExVat).toBeCloseTo(900 * 0.149, 6);
+
+      const above = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 1200, quantity: 1 });
+      expect(line(above, 'ebay-variable-fvf').amountExVat).toBeCloseTo(1000 * 0.149 + 200 * 0.04, 6);
+    });
+
+    it('quantity > 1 where EACH item individually crosses the threshold: each item is tiered independently, then multiplied', () => {
+      const r = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 1200, quantity: 3 });
+      const perItemFee = 1000 * 0.149 + 200 * 0.04; // = 157
+      expect(line(r, 'ebay-variable-fvf').amountExVat).toBeCloseTo(perItemFee * 3, 6);
+    });
+
+    it('per-item basis excludes shipping for quantity > 1 (unconfirmed allocation), but includes it for quantity === 1', () => {
+      const singleWithShipping = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 900, shippingCharged: 150, quantity: 1 });
+      // qty=1: "total amount of the sale" = item + postage = 1050 -> crosses the £1,000 threshold.
+      expect(line(singleWithShipping, 'ebay-variable-fvf').amountExVat).toBeCloseTo(1000 * 0.149 + 50 * 0.04, 6);
+      expect(singleWithShipping.exclusions.some((e) => e.includes('excluded from the per-item'))).toBeFalsy();
+
+      const multiWithShipping = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES', itemPrice: 900, shippingCharged: 150, quantity: 2 });
+      // qty=2: shipping is excluded from the per-item tier basis (unconfirmed allocation) -> each item stays at 900, below threshold.
+      expect(line(multiWithShipping, 'ebay-variable-fvf').amountExVat).toBeCloseTo(900 * 0.149 * 2, 6);
+      expect(multiWithShipping.exclusions.some((e) => e.includes('excluded from the per-item'))).toBe(true);
+      expect(multiWithShipping.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+      // The order-level fees (regulatory etc.) still include the full shipping charged.
+      expect(multiWithShipping.regulatoryFee).toBeCloseTo((900 * 2 + 150) * 0.0035, 6);
+    });
+
+    it('a FLAT category (no threshold) is completely unaffected by per-item vs per-order basis', () => {
+      const r = calculateEbay({ ...base, categoryId: 'EVERYTHING_ELSE', itemPrice: 500, quantity: 3 });
+      expect(line(r, 'ebay-variable-fvf').amountExVat).toBeCloseTo(500 * 3 * 0.129, 6);
+    });
+  });
+
+  describe('2026-08-16 follow-up audit: reduced 10p per-order fee', () => {
+    it('applies 10p instead of 30p for a qualifying sale at or below £10', () => {
+      const r = calculateEbay({ ...base, itemPrice: 8, qualifiesForReducedPerOrderFee: true });
+      expect(line(r, 'ebay-per-order').amountExVat).toBeCloseTo(0.1, 6);
+    });
+
+    it('does NOT apply when qualifiesForReducedPerOrderFee is false, even for a sale ≤ £10', () => {
+      const r = calculateEbay({ ...base, itemPrice: 8, qualifiesForReducedPerOrderFee: false });
+      expect(line(r, 'ebay-per-order').amountExVat).toBeCloseTo(0.3, 6);
+    });
+
+    it('reverts to the normal 40p above £10 even for a qualifying category', () => {
+      const r = calculateEbay({ ...base, itemPrice: 15, qualifiesForReducedPerOrderFee: true });
+      expect(line(r, 'ebay-per-order').amountExVat).toBeCloseTo(0.4, 6);
+    });
+  });
+
+  describe('2026-08-16 follow-up audit: category IDs and known open questions are surfaced', () => {
+    it('Jewellery & Watches, Women\'s Bags & Handbags and Smartphones carry a confirmed official category ID', () => {
+      const jewellery = calculateEbay({ ...base, categoryId: 'JEWELLERY_WATCHES' });
+      expect(line(jewellery, 'ebay-variable-fvf').label).toContain('#281');
+
+      const bags = calculateEbay({ ...base, categoryId: 'WOMENS_BAGS_HANDBAGS', itemPrice: 100 });
+      expect(line(bags, 'ebay-variable-fvf').label).toContain('#169291');
+
+      const phones = calculateEbay({ ...base, categoryId: 'SMARTPHONES', itemPrice: 100 });
+      expect(line(phones, 'ebay-variable-fvf').label).toContain('#9355');
+    });
+  });
 });

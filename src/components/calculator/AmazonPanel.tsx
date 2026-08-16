@@ -27,10 +27,7 @@ export default function AmazonPanel({
   errors?: AmazonPanelErrors;
 }) {
   const categoryOptions = [
-    ...AMAZON_CATEGORIES.map((c) => ({
-      value: c.id,
-      label: c.source.verificationStatus === 'AUTOMATED_UNVERIFIED' ? `${c.label} (unverified)` : c.label,
-    })),
+    ...AMAZON_CATEGORIES.map((c) => ({ value: c.id, label: c.label })),
     { value: UNSUPPORTED_CATEGORY_ID, label: 'Other (not in verified schedule — enter manually)' },
   ];
 
@@ -63,9 +60,9 @@ export default function AmazonPanel({
 
       <SelectField label="Category" value={state.categoryId} onChange={(v) => onChange({ categoryId: v })} options={categoryOptions} />
       <p className="text-[11px] text-[#666] -mt-4">
-        &quot;Unverified&quot; categories were pulled from an automated fetch of Amazon&apos;s pricing page and have not been independently
-        cross-checked line-by-line. A small number of categories previously listed here were removed during the 2026-08-16 audit because
-        their threshold mechanic (blended vs. whole-amount) could not be confirmed — use &quot;Other&quot; and enter a rate manually for those.
+        Every category listed here has been individually confirmed — rate, threshold mechanic and minimum fee — against Amazon&apos;s
+        published referral fee terms. A category not listed here has not been confirmed; select &quot;Other&quot; and enter a rate
+        manually rather than guessing.
       </p>
 
       {state.categoryId === UNSUPPORTED_CATEGORY_ID && (

@@ -139,9 +139,9 @@ describe('Shared engine tests', () => {
     expect(r.grossRevenue - r.cogs - r.shippingCost - r.totalCashFees).toBeCloseTo(r.estimatedProfit, 6);
   });
 
-  it('2026-08-16 audit: confidence precedence holds across a mix of verified, assumption-dependent and excluded fee lines', () => {
-    // Amazon always carries the "referral VAT excluded" signal (EXCLUDES_VARIABLE_FEES),
-    // which must win even when an unrelated assumption (AUTOMATED_UNVERIFIED category) is also present.
+  it('2026-08-16 audit: confidence precedence holds even for a fully verified category, because Amazon always excludes referral-fee VAT', () => {
+    // Amazon always carries the "referral VAT excluded" signal (EXCLUDES_VARIABLE_FEES) —
+    // this must win even when every other input (category, plan) is fully SPEC/AUDIT verified.
     const r = calculateAmazon({
       itemPrice: 20,
       itemCost: 0,
@@ -149,10 +149,29 @@ describe('Shared engine tests', () => {
       shippingCost: 0,
       quantity: 1,
       sellerPlan: 'INDIVIDUAL',
-      categoryId: 'BOOKS', // AUTOMATED_UNVERIFIED, flat
+      categoryId: 'BOOKS', // AUDIT_VERIFIED as of the 2026-08-16 follow-up audit
       vatProfile: 'NOT_REGISTERED',
     });
-    expect(r.assumptions.length).toBeGreaterThan(0);
+    expect(r.exclusions.some((e) => e.includes('VAT on referral fees'))).toBe(true);
     expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
+  });
+
+  it('2026-08-16 audit: an AUTOMATED_UNVERIFIED category (if one existed) would still surface a distinct assumption signal', () => {
+    // No AUTOMATED_UNVERIFIED Amazon category is currently enabled (see amazon.test.ts), so this
+    // exercises the engine's handling path directly via a manual-rate assumption instead —
+    // confirming the ASSUMPTION_DEPENDENT signal still fires correctly for genuinely-assumed inputs.
+    const r = calculateAmazon({
+      itemPrice: 20,
+      itemCost: 0,
+      deliveryCharge: 0,
+      shippingCost: 0,
+      quantity: 1,
+      sellerPlan: 'INDIVIDUAL',
+      categoryId: 'UNSUPPORTED_MANUAL_ENTRY',
+      manualCategoryRate: 0.15,
+      vatProfile: 'NOT_REGISTERED',
+    });
+    expect(r.assumptions.some((a) => a.includes('manually entered'))).toBe(true);
+    expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES'); // referral-VAT exclusion still wins (worst-of)
   });
 });

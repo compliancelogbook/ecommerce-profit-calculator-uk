@@ -71,6 +71,7 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     region: 'DOMESTIC',
     currencyConversionSelected: false,
     topRatedPremiumService: false,
+    qualifiesForReducedPerOrderFee: false,
   });
 
   const [amazon, setAmazon] = useState<AmazonPanelState>({
@@ -191,6 +192,7 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
           region: ebay.region,
           currencyConversionSelected: ebay.currencyConversionSelected,
           topRatedPremiumService: ebay.topRatedPremiumService,
+          qualifiesForReducedPerOrderFee: ebay.qualifiesForReducedPerOrderFee,
           vatProfile,
         });
       case 'AMAZON':

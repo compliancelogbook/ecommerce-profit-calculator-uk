@@ -6,6 +6,8 @@ import {
   EBAY_INTERNATIONAL_FEE_SOURCE,
   EBAY_PER_ORDER_FEE,
   EBAY_PER_ORDER_FEE_SOURCE,
+  EBAY_REDUCED_PER_ORDER_FEE,
+  EBAY_REDUCED_PER_ORDER_FEE_SOURCE,
   EBAY_REGULATORY_FEE_RATE,
   EBAY_REGULATORY_FEE_SOURCE,
   EBAY_SOURCE,
@@ -34,6 +36,8 @@ export interface EbayInput {
   region: EbayInternationalRegion;
   currencyConversionSelected: boolean;
   topRatedPremiumService: boolean;
+  /** Confirmed-by-user eligibility for eBay's reduced 10p (instead of 30p) per-order fee — see EBAY_REDUCED_PER_ORDER_FEE_CATEGORIES. */
+  qualifiesForReducedPerOrderFee?: boolean;
   vatProfile: VatProfile;
 }
 
@@ -92,10 +96,32 @@ export function calculateEbay(input: EbayInput): CalculationResult {
   let categorySource = EBAY_SOURCE;
 
   if (category) {
-    const { total } = applySchedule(totalSaleBasis, category.schedule);
-    variableFvf = total;
-    categoryLabel = category.label;
+    categoryLabel = category.officialCategoryId ? `${category.label} (#${category.officialCategoryId})` : category.label;
     categorySource = category.source;
+
+    // Tiered/threshold schedules calculated PER ITEM must be evaluated once
+    // per unit and then multiplied — applying them to the combined order
+    // total lets multiple items collectively cross a threshold that none
+    // of them crosses individually, which is wrong (2026-08-16 audit fix).
+    if (category.tierBasis === 'PER_ITEM' && category.schedule.kind !== 'FLAT') {
+      // For a single item, "per item" and "per order" are the same basis — eBay's own
+      // "total amount of the sale" definition includes postage, unambiguous here.
+      // For multiple items, postage's allocation across items is NOT confirmed by any
+      // primary source found, so it is deliberately excluded from the per-item tier
+      // basis (see exclusion pushed below) rather than invented (e.g. split evenly).
+      const perItemBasis = qty === 1 ? money(input.itemPrice).plus(input.shippingCharged) : money(input.itemPrice);
+      const { total: perItemFee } = applySchedule(perItemBasis, category.schedule);
+      variableFvf = perItemFee.times(qty);
+      if (qty > 1 && input.shippingCharged > 0) {
+        exclusions.push(
+          `Shipping charged (£${input.shippingCharged.toFixed(2)}) was excluded from the per-item Final Value Fee tier calculation for ${categoryLabel} — how eBay allocates postage across multiple items for tier purposes is not confirmed by any primary source found, so it was not guessed. The per-order regulatory/international/conversion fees below still include it.`
+        );
+        signals.push('EXCLUDES_VARIABLE_FEES');
+      }
+    } else {
+      const { total } = applySchedule(totalSaleBasis, category.schedule);
+      variableFvf = total;
+    }
   } else if (input.categoryId === UNSUPPORTED_CATEGORY_ID && isValidManualRate(input.manualCategoryRate)) {
     variableFvf = percentOf(totalSaleBasis, input.manualCategoryRate);
     categoryLabel = 'Manually entered category rate';
@@ -128,17 +154,25 @@ export function calculateEbay(input: EbayInput): CalculationResult {
     source: category ? categorySource : undefined,
   });
 
+  const saleQualifiesForReduction = Boolean(input.qualifiesForReducedPerOrderFee) && totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold);
   const perOrderFee = money(
-    category?.perOrderFeeOverride ?? (totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? EBAY_PER_ORDER_FEE.atOrBelow : EBAY_PER_ORDER_FEE.above)
+    category?.perOrderFeeOverride ??
+      (saleQualifiesForReduction
+        ? EBAY_REDUCED_PER_ORDER_FEE
+        : totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold)
+          ? EBAY_PER_ORDER_FEE.atOrBelow
+          : EBAY_PER_ORDER_FEE.above)
   );
   pushLine({
     id: 'ebay-per-order',
-    label: `Per-order fee (${totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? `sale ≤ £${EBAY_PER_ORDER_FEE.threshold}` : `sale > £${EBAY_PER_ORDER_FEE.threshold}`})`,
+    label: saleQualifiesForReduction
+      ? 'Per-order fee (reduced rate, sale ≤ £10, qualifying category)'
+      : `Per-order fee (${totalSaleBasis.lte(EBAY_PER_ORDER_FEE.threshold) ? `sale ≤ £${EBAY_PER_ORDER_FEE.threshold}` : `sale > £${EBAY_PER_ORDER_FEE.threshold}`})`,
     amount: perOrderFee,
     category: 'transaction',
     feeType: 'per_order_fee',
-    formula: EBAY_PER_ORDER_FEE_SOURCE.formula ?? '',
-    source: EBAY_PER_ORDER_FEE_SOURCE,
+    formula: saleQualifiesForReduction ? (EBAY_REDUCED_PER_ORDER_FEE_SOURCE.formula ?? '') : (EBAY_PER_ORDER_FEE_SOURCE.formula ?? ''),
+    source: saleQualifiesForReduction ? EBAY_REDUCED_PER_ORDER_FEE_SOURCE : EBAY_PER_ORDER_FEE_SOURCE,
   });
 
   const regulatoryFee = percentOf(totalSaleBasis, EBAY_REGULATORY_FEE_RATE);

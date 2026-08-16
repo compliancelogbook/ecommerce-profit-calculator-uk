@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SHOPIFY_SOURCE } from '../../data/shopify.fees';
 import { ETSY_SOURCES } from '../../data/etsy.fees';
 import { EBAY_SOURCE } from '../../data/ebay.fees';
-import { AMAZON_CATEGORIES, AMAZON_SOURCE, AMAZON_SOURCE_AUTOMATED } from '../../data/amazon.fees';
+import { AMAZON_CATEGORIES, AMAZON_SOURCE } from '../../data/amazon.fees';
 import { UK_VAT_SOURCE } from '../../data/vat';
 
 const amazonVerifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'SPEC_VERIFIED').length;
@@ -38,7 +38,8 @@ export default function MethodologyPage() {
           <p className="text-[#888] text-base leading-relaxed">
             This calculator covers UK seller rules only (Shopify UK, Etsy UK, eBay UK Business Sellers, Amazon UK FBM), current to
             16 August 2026. It is not tax or accounting advice — always confirm VAT and fee treatment with your accountant, HMRC guidance,
-            or the relevant platform invoice. Last independently audited 16 August 2026 (launch audit — see corrections below).
+            or the relevant platform invoice. Last independently audited 16 August 2026 (launch audit, then a same-day follow-up audit — see
+            corrections below).
           </p>
         </header>
 
@@ -95,10 +96,11 @@ export default function MethodologyPage() {
               <code className="text-[#eaeaea]">ASSUMPTION_DEPENDENT</code>.
             </p>
             <p>
-              <strong className="text-[#eaeaea]">eBay&apos;s category table was not expanded.</strong> The audit made two further attempts
-              to fetch eBay&apos;s live category page (both timed out) and one targeted web search, which returned figures for Jewellery
-              that conflicted with this build&apos;s tested, spec-given figures. Given that unreliability, the table was deliberately left
-              at its existing 7 verified categories rather than risk encoding a wrong or stale rate.
+              <strong className="text-[#eaeaea]">eBay&apos;s category table was not expanded (first attempt).</strong> This first audit
+              pass made two further attempts to fetch eBay&apos;s live category page (both timed out) and one targeted web search, which
+              returned figures for Jewellery that conflicted with this build&apos;s tested, spec-given figures. Given that unreliability,
+              the table was deliberately left at its existing 7 verified categories rather than risk encoding a wrong or stale rate — see
+              the follow-up audit below, which found a working access path.
             </p>
             <p>
               <strong className="text-[#eaeaea]">&quot;Fees last verified&quot; now requires full verification.</strong> The banner only
@@ -109,25 +111,79 @@ export default function MethodologyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">2026-08-16 follow-up audit — further corrections</h2>
+          <div className="text-sm text-[#888] leading-relaxed space-y-3">
+            <p>
+              <strong className="text-[#eaeaea]">eBay: fixed a per-item vs per-order threshold bug.</strong> Tiered categories were being
+              evaluated against the COMBINED order total (item price × quantity + postage), which let multiple items collectively cross a
+              threshold that none of them crossed individually — e.g. two £800 Jewellery items were being taxed as if £1,600 had been
+              sold in one go. eBay&apos;s own published wording for these categories explicitly says &quot;per item&quot;, confirmed via a
+              direct fetch of eBay&apos;s community announcement pages (the main fee page still could not be directly fetched — see
+              below). The three tiered categories (Jewellery &amp; Watches, Women&apos;s Bags &amp; Handbags, Smartphones) are now
+              evaluated per item and multiplied by quantity; flat categories are mathematically unaffected. For a single item, &quot;per
+              item&quot; and &quot;per order&quot; are the same basis. For multiple items, postage&apos;s allocation across items for tier
+              purposes is not stated by any primary source found, so it is excluded from the per-item basis rather than invented — this
+              exclusion is disclosed on the result and the order-level fees (regulatory, international, currency conversion) still include
+              the full postage charged.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">eBay: category IDs and a reduced per-order-fee exception, sourced from a working access
+              path.</strong> eBay&apos;s main fee page remains unfetchable directly, but eBay&apos;s community.ebay.co.uk announcement
+              pages ARE fetchable and are still a primary eBay source. This confirmed official category IDs for the three tiered
+              categories (Jewellery &amp; Watches #281, Women&apos;s Bags &amp; Handbags #169291, Smartphones #9355) and a fully-sourced
+              reduced 10p (instead of 30p) per-order fee for qualifying sales ≤ £10 in Antiques (#20081), Art (#550), Coins (#11116),
+              Collectables (#1), Dolls &amp; Bears (#237), Pottery &amp; Glass (#870), Sports Memorabilia (#64482), Stamps (#260) and
+              Home, Furniture &amp; DIY. That reduction is exposed as an independent toggle rather than folded into a new category, because
+              none of those categories currently have a confirmed variable Final Value Fee percentage in this build — pairing a verified
+              exception with a guessed percentage would be worse than not adding it.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">eBay: one open question surfaced, not resolved by guessing.</strong> A primary-source
+              announcement dated 7 March 2024 states the current 14.9%/£1,000/4% rate applies to &quot;Jewellery only&quot;, with no
+              corresponding increase mentioned for &quot;Watches, Parts &amp; Accessories&quot;. This build still treats &quot;Jewellery
+              &amp; Watches&quot; as one combined category at that rate, because that is the explicit, tested ground truth given for this
+              build and the announcement doesn&apos;t state what Watches&apos; current rate actually is — only that it wasn&apos;t part of
+              that specific increase. Flagged for a human to confirm whether Watches should be split into its own category.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Amazon: every automatically enabled category is now individually verified.</strong> The
+              first audit pass removed 10 categories rather than guess their marginal-vs-whole-amount mechanic. This follow-up made nine
+              separate, targeted fetches of sell.amazon.co.uk/pricing — one per category or small group, by name, quoting each
+              category&apos;s literal published wording rather than a bulk summary — which distinguishes &quot;X% for the portion of the
+              total price up to £Y&quot; (marginal) from &quot;X% for products/items priced at/up to £Y&quot; (whole-price threshold). This
+              resolved the mechanic for all 10 previously-removed categories (now restored) and individually confirmed the rate and
+              minimum fee for the remaining ~32 flat categories, which were previously auto-calculated without that individual check. One
+              genuine contradiction was found and resolved: a bulk fetch implied Books had a £0.25 minimum fee, but a dedicated, narrower
+              fetch confirmed &quot;not applicable&quot; — consistent with the original build&apos;s figure — so the narrower, targeted
+              answer was trusted over the bulk one. No Amazon category remains <code className="text-[#eaeaea]">AUTOMATED_UNVERIFIED</code>{' '}
+              while auto-selectable; an automated test fails the build if one ever becomes selectable again without being upgraded first.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-white">Coverage &amp; what&apos;s not verified</h2>
           <div className="text-sm text-[#888] leading-relaxed space-y-3">
             <p>
-              <strong className="text-[#eaeaea]">eBay category coverage is partial.</strong> Only the categories given directly in this
-              build&apos;s specification are included (Clothes/Shoes/Accessories, Women&apos;s Bags &amp; Handbags, Jewellery &amp; Watches,
-              Mobile Phones, Smartphones, Business/Office/Industrial, Everything Else). eBay&apos;s live category page could not be fetched
-              (repeated timeouts across two build passes). Any other category must be entered manually — the calculator will never silently
-              apply a guessed rate.
+              <strong className="text-[#eaeaea]">eBay category coverage is still partial.</strong> Only the categories given directly in
+              this build&apos;s specification are included (Clothes/Shoes/Accessories, Women&apos;s Bags &amp; Handbags, Jewellery &amp;
+              Watches, Mobile Phones, Smartphones, Business/Office/Industrial, Everything Else), now with per-item tier calculation and
+              official category IDs where confirmed. eBay&apos;s main fee page — the only source with the complete category table —
+              still could not be directly fetched across three attempts over two audit passes; the community-announcement pages that
+              worked only cover specific historical fee changes, not the full current table. Any other category must be entered
+              manually — the calculator will never silently apply a guessed rate.
             </p>
             <p>
-              <strong className="text-[#eaeaea]">Amazon category coverage: {amazonVerifiedCount} verified, {amazonAuditCount} audit-corrected,
-              {' '}{amazonUnverifiedCount} unverified.</strong> {amazonVerifiedCount} categories match this build&apos;s specification exactly
-              and are covered by automated tests. 1 (Automotive &amp; Powersports) was individually corrected during the 2026-08-16 audit.
-              A further {amazonUnverifiedCount} single-rate (flat, no threshold to infer) categories were extracted via an automated fetch of{' '}
-              <a href={AMAZON_SOURCE_AUTOMATED.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea]">
+              <strong className="text-[#eaeaea]">Amazon category coverage: {amazonVerifiedCount} spec-verified, {amazonAuditCount} audit-verified,
+              {' '}{amazonUnverifiedCount} unverified.</strong> Every automatically selectable Amazon category is either{' '}
+              {amazonVerifiedCount} given verbatim in the original build brief and covered by acceptance tests, or {amazonAuditCount}{' '}
+              individually confirmed by name — rate, threshold mechanic and minimum fee — via targeted fetches of{' '}
+              <a href={AMAZON_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea]">
                 sell.amazon.co.uk/pricing
               </a>{' '}
-              and are marked &quot;unverified&quot; in the category picker. Any category whose marginal-vs-whole-amount mechanic could not
-              be individually confirmed was removed rather than guessed — see the audit corrections above.
+              during the 2026-08-16 follow-up audit, quoting each category&apos;s literal published wording to distinguish marginal
+              (&quot;portion of the total price&quot;) from whole-price-threshold (&quot;products/items priced at/up to&quot;) categories.
+              No category remains auto-selectable while unverified — see the automated test asserting this in the test suite.
             </p>
             <p>
               <strong className="text-[#eaeaea]">Etsy VAT treatment is fee-specific.</strong> VAT (20% if no VAT ID is on file, 0% reverse

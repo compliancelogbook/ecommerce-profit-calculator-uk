@@ -65,10 +65,23 @@ export type PercentageSchedule =
   | { kind: 'THRESHOLD_FLAT'; tiers: FeeTier[] };
 
 export interface CategoryFeeRule {
-  /** Stable identifier, ideally matching the platform's own category id where known. */
+  /** Stable internal identifier used throughout this app. */
   id: string;
   label: string;
+  /** The platform's own official category ID, where confirmed by primary evidence (e.g. eBay category #281). */
+  officialCategoryId?: string;
   schedule: PercentageSchedule;
+  /**
+   * For TIERED/THRESHOLD_FLAT schedules only: whether the threshold is
+   * evaluated against a single item's price (PER_ITEM — each unit in a
+   * multi-quantity order is tiered independently, then multiplied by
+   * quantity) or against the combined order total (PER_ORDER). Confirmed
+   * per category from primary evidence — never inferred. Irrelevant for
+   * FLAT schedules (mathematically identical either way). Undefined means
+   * PER_ORDER (the historical default, unchanged for categories where this
+   * hasn't been separately confirmed).
+   */
+  tierBasis?: 'PER_ITEM' | 'PER_ORDER';
   /** Minimum fee floor in pounds, applied after the percentage schedule. */
   minimumFee?: number;
   /** Overrides the platform-default per-order fee for this category, if the platform defines one. */
