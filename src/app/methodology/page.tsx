@@ -13,7 +13,7 @@ const ebayCategoryCount = EBAY_CATEGORIES.length;
 const ebayWithReducedFeeCount = EBAY_CATEGORIES.filter((c) => c.reducedPerOrderFee).length;
 
 export const metadata: Metadata = {
-  title: 'Methodology & Sources | Compliance Logbook',
+  title: 'Methodology & Sources',
   description: 'How this calculator computes UK seller fees: data sources, verification dates, VAT treatment, arithmetic and confidence levels.',
 };
 

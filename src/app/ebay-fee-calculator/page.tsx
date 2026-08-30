@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
 
 export const metadata: Metadata = {
-  title: 'eBay UK Business Seller Fee Calculator | Compliance Logbook',
+  title: 'eBay UK Business Seller Fee Calculator',
   description:
     'Calculate eBay UK Business seller Final Value Fees by category, per-order fees, the Regulatory Operating Fee, international fees and Top Rated discounts.',
 };

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
 
 export const metadata: Metadata = {
-  title: 'Shopify UK Fee Calculator (Basic, Grow, Advanced) | Compliance Logbook',
+  title: 'Shopify UK Fee Calculator (Basic, Grow, Advanced)',
   description:
     'Calculate Shopify UK Payments and transaction fees for Basic, Grow and Advanced plans, allocate your monthly subscription per order, and see your real net profit.',
 };

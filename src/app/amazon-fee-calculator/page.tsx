@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
 
 export const metadata: Metadata = {
-  title: 'Amazon UK FBM Fee Calculator | Compliance Logbook',
+  title: 'Amazon UK FBM Fee Calculator',
   description:
     'Calculate Amazon UK Fulfilled by Merchant (FBM) referral fees by category, Individual and Professional selling plan costs, and your net profit. FBA is not covered.',
 };

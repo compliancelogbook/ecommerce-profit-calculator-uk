@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import SiteHeader from "../components/site/SiteHeader";
+import SiteFooter from "../components/site/SiteFooter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,20 +14,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_NAME = "EasyFeezy";
+const SITE_DESCRIPTION =
+  "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay and Amazon UK seller fee and profit calculators.";
+
 export const metadata: Metadata = {
-  title: "Shopify & eBay Fees Calculator | Free Seller Profit Calculator",
-  description: "Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, and Amazon. Constantly updated with the latest 2026 fee changes.",
-  keywords: "shopify fee calculator, ebay fee calculator, amazon fee calculator, seller profit calculator, ecommerce margin calculator, shopify payments fees",
+  metadataBase: new URL("https://easyfeezy.com"),
+  title: {
+    template: "%s | EasyFeezy",
+    default: "EasyFeezy — Marketplace Fee & Profit Calculator",
+  },
+  description: SITE_DESCRIPTION,
+  keywords: "shopify fee calculator, ebay fee calculator, amazon fee calculator, etsy fee calculator, seller profit calculator, ecommerce margin calculator, shopify payments fees",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Shopify & eBay Fees Calculator | Free Seller Profit Calculator",
-    description: "Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, and Amazon.",
+    siteName: SITE_NAME,
+    title: "EasyFeezy — Marketplace Fee & Profit Calculator",
+    description: SITE_DESCRIPTION,
+    url: "/",
     type: "website",
     locale: "en_GB",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shopify & eBay Fees Calculator | Free Seller Profit Calculator",
-    description: "Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, and Amazon.",
+    title: "EasyFeezy — Marketplace Fee & Profit Calculator",
+    description: SITE_DESCRIPTION,
   },
 };
 
@@ -35,7 +50,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-black">
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }

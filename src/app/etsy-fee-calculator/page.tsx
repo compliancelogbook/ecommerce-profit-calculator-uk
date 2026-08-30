@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
 
 export const metadata: Metadata = {
-  title: 'Etsy UK Fee Calculator | Compliance Logbook',
+  title: 'Etsy UK Fee Calculator',
   description:
     'Calculate Etsy UK listing, transaction, payment processing and Regulatory Operating Fee costs, model Offsite Ads, and see your net profit per sale.',
 };
