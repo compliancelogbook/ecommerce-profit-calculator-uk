@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: '/etsy-fee-calculator',
   title: 'Etsy UK Fee Calculator',
   description:
     'Calculate Etsy UK listing, transaction, payment processing and Regulatory Operating Fee costs, model Offsite Ads, and see your net profit per sale.',
-};
+});
 
 export default function EtsyFeeCalculatorPage() {
   return (

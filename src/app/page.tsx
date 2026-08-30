@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import CalculatorShell from '../components/calculator/CalculatorShell';
 import Link from 'next/link';
+import { homeMetadata } from '../lib/seo';
+
+export const metadata: Metadata = homeMetadata({
+  title: 'EasyFeezy — Marketplace Fee & Profit Calculator',
+  description:
+    "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay and Amazon UK seller fee and profit calculators.",
+});
 
 export default function Home() {
   return (
@@ -30,7 +38,7 @@ export default function Home() {
           <CalculatorShell />
         </main>
 
-        <nav className="w-full mt-10 flex flex-wrap justify-center gap-3 text-sm">
+        <nav aria-label="Marketplace calculators" className="w-full mt-10 flex flex-wrap justify-center gap-3 text-sm">
           <Link href="/shopify-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Shopify Fee Calculator</Link>
           <Link href="/etsy-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Etsy Fee Calculator</Link>
           <Link href="/ebay-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">eBay Fee Calculator</Link>

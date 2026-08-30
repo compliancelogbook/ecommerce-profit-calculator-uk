@@ -5,6 +5,7 @@ import { ETSY_SOURCES } from '../../data/etsy.fees';
 import { EBAY_CATEGORIES, EBAY_SOURCE, EBAY_SOURCE_2026_08_04 } from '../../data/ebay.fees';
 import { AMAZON_CATEGORIES, AMAZON_SOURCE } from '../../data/amazon.fees';
 import { UK_VAT_SOURCE } from '../../data/vat';
+import { pageMetadata } from '../../lib/seo';
 
 const amazonVerifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'SPEC_VERIFIED').length;
 const amazonAuditCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'AUDIT_VERIFIED').length;
@@ -12,10 +13,11 @@ const amazonUnverifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificat
 const ebayCategoryCount = EBAY_CATEGORIES.length;
 const ebayWithReducedFeeCount = EBAY_CATEGORIES.filter((c) => c.reducedPerOrderFee).length;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: '/methodology',
   title: 'Methodology & Sources',
   description: 'How this calculator computes UK seller fees: data sources, verification dates, VAT treatment, arithmetic and confidence levels.',
-};
+});
 
 function SourceRow({ label, url, verifiedAt }: { label: string; url: string; verifiedAt: string | null }) {
   return (

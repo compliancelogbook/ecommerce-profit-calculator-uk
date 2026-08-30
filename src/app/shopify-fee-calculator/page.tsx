@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: '/shopify-fee-calculator',
   title: 'Shopify UK Fee Calculator (Basic, Grow, Advanced)',
   description:
     'Calculate Shopify UK Payments and transaction fees for Basic, Grow and Advanced plans, allocate your monthly subscription per order, and see your real net profit.',
-};
+});
 
 export default function ShopifyFeeCalculatorPage() {
   return (

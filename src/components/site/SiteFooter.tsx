@@ -10,7 +10,10 @@ export default function SiteFooter() {
             EasyFeezy is a trading name of Compliance Logbook Ltd, registered in England and Wales. Company number 16932013.
           </p>
         </div>
-        <Link href="/methodology" className="hover:text-[#eaeaea] transition-colors">
+        <Link
+          href="/methodology"
+          className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+        >
           Methodology
         </Link>
       </div>
