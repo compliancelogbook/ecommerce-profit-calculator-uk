@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import CalculatorShell from '../components/calculator/CalculatorShell';
 import Link from 'next/link';
 import { homeMetadata } from '../lib/seo';
+import { OPTIONAL_HOME_ENTRY_COPY } from '../lib/uk-tax-guide/content';
 
 export const metadata: Metadata = homeMetadata({
   title: 'EasyFeezy — Marketplace Fee & Profit Calculator',
@@ -45,6 +46,15 @@ export default function Home() {
           <Link href="/amazon-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Amazon Fee Calculator</Link>
           <Link href="/tiktok-shop-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">TikTok Shop Fee Calculator</Link>
         </nav>
+
+        <p className="mt-6 text-sm text-[#666]">
+          <Link
+            href="/uk-online-selling-tax-guide"
+            className="underline hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+          >
+            {OPTIONAL_HOME_ENTRY_COPY}
+          </Link>
+        </p>
       </div>
 
     </div>
