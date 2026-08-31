@@ -156,6 +156,27 @@ a supplier negotiation, or a client.
 - [ ] Deterministic export tests to ensure report values match the
       on-screen calculation.
 
+### Copy Financial Breakdown
+
+**Rationale:** users often need a quick portable result before requiring a
+complete PDF or spreadsheet export.
+
+- [ ] One-click copy as clean, professionally formatted plain text.
+- [ ] Optional copy as CSV-formatted text.
+- [ ] Include marketplace, inputs, gross revenue, every fee deduction,
+      total fees, net profit and margin.
+- [ ] Include assumptions, exclusions, confidence status and
+      fee-verification date.
+- [ ] Never represent an unknown or excluded fee as zero.
+- [ ] Provide visible confirmation when copying succeeds.
+- [ ] Provide an accessible fallback when clipboard permission is
+      unavailable.
+- [ ] Ensure copied values are generated from the same calculation result
+      object shown on screen.
+- [ ] Add deterministic tests proving copied values match displayed
+      results.
+- [ ] Keep this feature usable without an account or database.
+
 ---
 
 ## 6. Post-launch Priority 2 — saved scenarios and repeat use
@@ -172,6 +193,45 @@ and costs change — losing that history on every visit is real friction.
 - [ ] Data export and deletion controls.
 - [ ] Appropriate privacy and security review before storing user
       information.
+
+### Bulk CSV Product Analysis — EasyFeezy Pro candidate
+
+**Rationale:** established sellers need to evaluate an entire catalogue
+rather than entering products individually, making this a credible paid
+EasyFeezy Pro feature.
+
+- [ ] Upload a CSV containing multiple products or SKUs.
+- [ ] Publish a downloadable CSV template with documented required and
+      optional columns.
+- [ ] Provide column mapping rather than requiring one rigid external file
+      format.
+- [ ] Support product name/SKU, selling price, product cost, quantity,
+      shipping charged, actual postage, marketplace and relevant platform
+      options.
+- [ ] Validate every row before calculation.
+- [ ] Show understandable row-specific errors without failing the complete
+      file.
+- [ ] Preview parsed products before running calculations.
+- [ ] Process valid rows through the same audited marketplace engines used
+      by the individual calculators.
+- [ ] Never create a second simplified calculation implementation for bulk
+      files.
+- [ ] Return gross revenue, total fees, net profit, margin, confidence and
+      exclusions per row.
+- [ ] Allow the completed analysis to be downloaded as CSV.
+- [ ] Provide a summary showing profitable, loss-making, incomplete and
+      excluded-fee rows.
+- [ ] Add file-size, row-count and performance limits based on testing
+      rather than guesswork.
+- [ ] Assess formula injection, malformed files and other CSV security
+      risks.
+- [ ] Keep processing client-side where practical.
+- [ ] If uploaded data will ever be transmitted or stored, complete a
+      privacy, security and retention review before implementation.
+- [ ] Add parity tests proving a CSV row returns the same result as
+      entering identical data in the relevant individual calculator.
+- [ ] Treat bulk analysis as a potential EasyFeezy Pro feature; pricing
+      remains undecided and must be validated.
 
 ---
 
@@ -218,6 +278,19 @@ directly, as long as it never compromises calculation integrity.
 - [ ] Keep recommendations relevant to the calculation context.
 - [ ] Never allow commission to influence calculation results or editorial
       guidance.
+- [ ] Investigate shipping and seller-operations affiliates: parcel-label
+      providers, shipping-management platforms, fulfilment services,
+      inventory-management tools and returns-management tools.
+- [ ] Research candidates such as Parcel2Go and ShipStation without
+      presenting them as approved partners or endorsements.
+- [ ] Confirm UK programme availability, eligibility, commission terms and
+      brand rules before publishing anything.
+- [ ] Only display an offer where it is contextually useful to the seller.
+- [ ] Never rank or recommend a provider solely because it pays a higher
+      commission.
+- [ ] Clearly distinguish affiliate offers from marketplace calculations.
+- [ ] Do not publish financial-product or business-bank promotions without
+      a separate compliance review.
 
 ### Advertising
 
@@ -233,9 +306,47 @@ directly, as long as it never compromises calculation integrity.
 
 - [ ] Free individual calculators for search and acquisition.
 - [ ] EasyFeezy Pro for saved scenarios, connected landed-cost modelling,
-      comparison and exports.
+      comparison, exports and bulk CSV catalogue analysis.
 - [ ] Professional tier for branded or white-labelled client reports.
 - [ ] Pricing remains undecided and must be validated rather than invented.
+
+### Launch distribution and demand validation
+
+**Rationale:** deployment alone does not produce users; distribution
+should test genuine demand without spam or fabricated claims.
+
+- [ ] Submit the production site and sitemap to Google Search Console.
+- [ ] Confirm production pages can be crawled and indexed.
+- [ ] Create worked comparison examples for representative £20, £50 and
+      £100 products.
+- [ ] Produce a clean visual showing the calculated profit difference
+      across supported marketplaces.
+- [ ] Ensure every marketing comparison states its inputs, assumptions,
+      exclusions and fee-verification date.
+- [ ] Prepare a transparent founder launch post explaining why EasyFeezy
+      was built.
+- [ ] Prepare an Indie Hackers launch post.
+- [ ] Identify relevant Reddit communities and read each community's
+      self-promotion rules before posting.
+- [ ] Do not mass-post identical promotional copy.
+- [ ] Prefer useful worked examples and transparent methodology over
+      generic promotion.
+- [ ] Create appropriately sized social assets for LinkedIn, Instagram and
+      other chosen channels.
+- [ ] Track calculator completions, marketplace selections and comparison
+      usage using the approved privacy-conscious analytics setup.
+- [ ] Define initial validation signals such as real calculator use,
+      repeat visits, export usage and EasyFeezy Pro interest.
+- [ ] Do not treat impressions alone as product validation.
+- [ ] Do not make unsubstantiated "most accurate", "best" or savings
+      claims.
+- [ ] Record the existing first-revenue milestone of £13.36 without
+      allowing it to distort product integrity.
+
+**Note:** do not add a live Pro waitlist requirement yet. A waitlist would
+collect personal data and must only be introduced after its purpose,
+consent wording, privacy treatment and email provider are deliberately
+chosen.
 
 ---
 
@@ -298,3 +409,4 @@ quietly becoming an unplanned distraction later.
 | Date | Item added or changed | Reason | Status | Related issue/commit |
 |---|---|---|---|---|
 | 2026-08-31 | Created this roadmap | Following identification of connected profitability workflows and professional exports as the long-term product direction | Done | — |
+| 2026-08-31 | Added clipboard export, bulk CSV analysis, seller-operations affiliate opportunities, and launch-distribution planning | External 24-hour product-plan review identified four worthwhile additions not fully captured in the original roadmap | Planned | `docs: expand EasyFeezy post-launch roadmap` |
