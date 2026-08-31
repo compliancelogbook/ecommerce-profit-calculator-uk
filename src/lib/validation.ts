@@ -88,3 +88,22 @@ export function parseNonNegativePercent(raw: string, fieldLabel: string, max = 1
 export function parseNonNegativeFixedFee(raw: string, fieldLabel: string): ValidationResult<number> {
   return parseNonNegativeAmount(raw, fieldLabel);
 }
+
+/**
+ * TikTok Shop's affiliate/creator commission rate: blank or exactly 0 means
+ * "no affiliate arrangement applies" (a legitimate, common value — never an
+ * error). Any other value must fall within TikTok's currently documented
+ * 1%-80% range; outside that range is rejected rather than silently
+ * clamped or accepted as a real rate.
+ */
+export function parseOptionalAffiliateRate(raw: string): ValidationResult<number | null> {
+  const trimmed = raw.trim();
+  if (trimmed === '') return { ok: true, value: null };
+  const n = toNumber(raw);
+  if (n === null || Number.isNaN(n)) return { ok: false, error: 'Affiliate commission rate must be a valid number.' };
+  if (n === 0) return { ok: true, value: null };
+  if (n < 1 || n > 80) {
+    return { ok: false, error: "Affiliate commission rate must be between 1% and 80% (TikTok's documented range), or left blank if not applicable." };
+  }
+  return { ok: true, value: n / 100 };
+}

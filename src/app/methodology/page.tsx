@@ -4,6 +4,7 @@ import { SHOPIFY_SOURCE } from '../../data/shopify.fees';
 import { ETSY_SOURCES } from '../../data/etsy.fees';
 import { EBAY_CATEGORIES, EBAY_SOURCE, EBAY_SOURCE_2026_08_04 } from '../../data/ebay.fees';
 import { AMAZON_CATEGORIES, AMAZON_SOURCE } from '../../data/amazon.fees';
+import { TIKTOK_CATEGORIES, TIKTOK_SOURCE } from '../../data/tiktok.fees';
 import { UK_VAT_SOURCE } from '../../data/vat';
 import { pageMetadata } from '../../lib/seo';
 
@@ -12,6 +13,9 @@ const amazonAuditCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationSt
 const amazonUnverifiedCount = AMAZON_CATEGORIES.filter((c) => c.source.verificationStatus === 'AUTOMATED_UNVERIFIED').length;
 const ebayCategoryCount = EBAY_CATEGORIES.length;
 const ebayWithReducedFeeCount = EBAY_CATEGORIES.filter((c) => c.reducedPerOrderFee).length;
+const tiktokCategoryCount = TIKTOK_CATEGORIES.length;
+const tiktok5pctCount = TIKTOK_CATEGORIES.filter((c) => c.rate === 0.05).length;
+const tiktok9pctCount = TIKTOK_CATEGORIES.filter((c) => c.rate === 0.09).length;
 
 export const metadata: Metadata = pageMetadata({
   path: '/methodology',
@@ -40,10 +44,11 @@ export default function MethodologyPage() {
         <header className="space-y-4">
           <h1 className="text-3xl md:text-5xl font-semibold text-white tracking-tighter">Methodology &amp; Sources</h1>
           <p className="text-[#888] text-base leading-relaxed">
-            This calculator covers UK seller rules only (Shopify UK, Etsy UK, eBay UK Business Sellers, Amazon UK FBM), current to
-            16 August 2026. It is not tax or accounting advice — always confirm VAT and fee treatment with your accountant, HMRC guidance,
-            or the relevant platform invoice. Last independently audited 16 August 2026 (launch audit, then a same-day follow-up audit — see
-            corrections below).
+            This calculator covers UK seller rules only (Shopify UK, Etsy UK, eBay UK Business Sellers, Amazon UK FBM, TikTok Shop UK),
+            current to 16 August 2026 for Shopify/Etsy/eBay/Amazon and 31 August 2026 for TikTok Shop. It is not tax or accounting advice —
+            always confirm VAT and fee treatment with your accountant, HMRC guidance, or the relevant platform invoice. Last independently
+            audited 16 August 2026 (launch audit, then a same-day follow-up audit — see corrections below); TikTok Shop UK support was added
+            31 August 2026.
           </p>
         </header>
 
@@ -61,6 +66,11 @@ export default function MethodologyPage() {
               verifiedAt={EBAY_SOURCE_2026_08_04.verifiedAt}
             />
             <SourceRow label="Amazon UK: Pricing (verified categories)" url={AMAZON_SOURCE.url} verifiedAt={AMAZON_SOURCE.verifiedAt} />
+            <SourceRow
+              label="TikTok Shop UK: commission-category workbook (TikTok Seller Academy)"
+              url={TIKTOK_SOURCE.url}
+              verifiedAt={TIKTOK_SOURCE.verifiedAt}
+            />
             <SourceRow label="UK standard VAT rate (HMRC, statutory)" url={UK_VAT_SOURCE.url} verifiedAt={null} />
           </ul>
         </section>
@@ -254,6 +264,100 @@ export default function MethodologyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">TikTok Shop UK</h2>
+          <div className="text-sm text-[#888] leading-relaxed space-y-3">
+            <p>
+              <strong className="text-[#eaeaea]">Complete commission schedule, mechanically extracted from a verified source file.</strong>{' '}
+              The official TikTok Shop UK commission-category workbook was downloaded from TikTok Seller Academy and supplied directly
+              for this build. Its SHA-256 hash was checked against the hash it was supplied with before any row was encoded, and every
+              one of its <strong className="text-[#eaeaea]">{tiktokCategoryCount} category/subcategory rules</strong> ({tiktok5pctCount}{' '}
+              at 5%, {tiktok9pctCount} at 9%) was extracted directly from the source .xlsx by a small script — no value was hand-retyped
+              at any point, which is what eliminates transcription risk for this dataset. The extraction script re-checks the source
+              hash and the audited row/rate counts every time it runs, and refuses to generate anything if either doesn&apos;t match. The
+              category data was verified 31 August 2026.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Commission is inclusive of VAT.</strong> Unlike this build&apos;s other platforms,
+              TikTok Shop&apos;s published commission rate already includes applicable VAT — no separate 20% UK VAT is added on top of
+              it. The standard rate is 9%; a minority of categories/subcategories are confirmed at a reduced 5%.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Platform commission and affiliate/creator commission use different bases.</strong> TikTok
+              publishes two distinct formulas, not one shared basis:
+            </p>
+            <ul className="list-disc list-inside space-y-1 pl-1">
+              <li>
+                <strong className="text-[#eaeaea]">Platform commission basis</strong> = (item price × quantity) minus any{' '}
+                <em>seller-funded</em> discount, plus shipping charged to the customer. A TikTok-funded (platform) discount is recorded
+                for transparency but does not reduce this basis — TikTok absorbs that cost itself. Worked example: £100 product, £10
+                seller discount, £5 customer-paid shipping → basis = 100 − 10 + 5 = £95; commission at 9% = £8.55.
+              </li>
+              <li>
+                <strong className="text-[#eaeaea]">Affiliate/creator commission basis</strong> = product price minus seller discount
+                minus platform discount, floored at £0 — it excludes customer-paid shipping entirely, and (unlike the platform basis) it
+                does subtract the platform discount. Same order, 10% affiliate rate: basis = 100 − 10 − 10 = £80; commission = £8.00.
+              </li>
+            </ul>
+            <p>
+              <strong className="text-[#eaeaea]">Affiliate/creator commission is optional and seller-entered.</strong> A rate is only
+              applied when the seller enters one — it is never assumed — and it must fall within TikTok&apos;s documented 1%–80% range;
+              blank or 0% means no affiliate arrangement applies. It is shown as a fully separate deduction from the platform commission,
+              on its own basis, never blended with it.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">No rate stacking.</strong> An optional seller-specific promotional commission rate, when
+              entered, entirely replaces the category rate — it is never added to or combined with it.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">TikTok Shop fulfilment (FBT), ads, storage and return costs are not calculated from a
+              schedule.</strong> These have no published, verified fee schedule in this build&apos;s dataset, so — consistent with the
+              existing &quot;never guess&quot; approach used elsewhere for the seller&apos;s actual shipping cost — they are entered as a
+              single actual-cost amount rather than estimated.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">One source-data oddity preserved verbatim.</strong> The workbook&apos;s Pre-Owned
+              category lists a subcategory using an unusual first character (&quot;Ǫuartz Watches&quot;, U+01EA rather than a plain
+              &quot;Q&quot;). That literal source value is retained for auditability; the calculator displays the corrected &quot;Quartz
+              Watches&quot; as a tested alias, without mutating the underlying source record.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Official TikTok Seller Academy sources.</strong> Category commission workbook:{' '}
+              <a href={TIKTOK_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea] break-all">
+                {TIKTOK_SOURCE.url}
+              </a>
+              . Cross-referenced against{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=3337893683398432"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=3337893683398432
+              </a>{' '}
+              (commission structure),{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=7753824408913665"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=7753824408913665
+              </a>{' '}
+              (fee overview), and{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=7753826522154754"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=7753826522154754
+              </a>{' '}
+              (affiliate/creator commission formula).
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-white">Coverage &amp; what&apos;s not verified</h2>
           <div className="text-sm text-[#888] leading-relaxed space-y-3">
             <p>
@@ -293,7 +397,16 @@ export default function MethodologyPage() {
               <strong className="text-[#eaeaea]">Etsy&apos;s Offsite Ads fee cap</strong> is modelled at US$100/order, converted to £ using
               the same explicit, editable USD→GBP assumption used for the listing fee.
             </p>
-            <p>V1 explicitly excludes: Amazon FBA, accounts/saved calculations, marketplace API connections, and non-UK seller jurisdictions.</p>
+            <p>
+              <strong className="text-[#eaeaea]">TikTok Shop commission schedule: {tiktokCategoryCount} category/subcategory rules, all
+              confirmed.</strong> Every selectable category resolves to a confirmed 5% or 9% commission rate — none require a manual
+              rate. A category genuinely outside the workbook (e.g. a new category TikTok adds later) still requires one, rather than a
+              guess.
+            </p>
+            <p>
+              V1 explicitly excludes: Amazon FBA, TikTok Shop FBT/ads/storage/return fee schedules (entered as an actual cost, not
+              calculated), accounts/saved calculations, marketplace API connections, and non-UK seller jurisdictions.
+            </p>
           </div>
         </section>
 

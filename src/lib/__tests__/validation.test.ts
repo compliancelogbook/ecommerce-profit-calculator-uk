@@ -4,6 +4,7 @@ import {
   parseNonNegativeAmount,
   parseNonNegativeFixedFee,
   parseNonNegativePercent,
+  parseOptionalAffiliateRate,
   parseOptionalPositiveInteger,
   parsePositiveFxRate,
   parsePositiveWholeQuantity,
@@ -111,5 +112,37 @@ describe('parseOptionalPositiveInteger', () => {
   });
   it('accepts a valid whole number', () => {
     expect(parseOptionalPositiveInteger('100', 'x')).toEqual({ ok: true, value: 100 });
+  });
+});
+
+describe('parseOptionalAffiliateRate', () => {
+  it('blank means "no affiliate arrangement applies" — valid, not an error', () => {
+    expect(parseOptionalAffiliateRate('')).toEqual({ ok: true, value: null });
+    expect(parseOptionalAffiliateRate('   ')).toEqual({ ok: true, value: null });
+  });
+  it('exactly 0 is treated the same as blank', () => {
+    expect(parseOptionalAffiliateRate('0')).toEqual({ ok: true, value: null });
+  });
+  it("rejects a value below TikTok's documented 1% floor", () => {
+    expect(parseOptionalAffiliateRate('0.5').ok).toBe(false);
+  });
+  it("rejects a value above TikTok's documented 80% ceiling", () => {
+    expect(parseOptionalAffiliateRate('81').ok).toBe(false);
+    expect(parseOptionalAffiliateRate('100').ok).toBe(false);
+  });
+  it('accepts the documented boundary values 1 and 80', () => {
+    expect(parseOptionalAffiliateRate('1')).toEqual({ ok: true, value: 0.01 });
+    expect(parseOptionalAffiliateRate('80')).toEqual({ ok: true, value: 0.8 });
+  });
+  it('accepts a valid value within range, converted to a fraction', () => {
+    expect(parseOptionalAffiliateRate('10')).toEqual({ ok: true, value: 0.1 });
+  });
+  it('rejects malformed input', () => {
+    for (const bad of ['abc', '1.2.3', 'NaN', 'Infinity']) {
+      expect(parseOptionalAffiliateRate(bad).ok).toBe(false);
+    }
+  });
+  it('rejects negative values', () => {
+    expect(parseOptionalAffiliateRate('-5').ok).toBe(false);
   });
 });

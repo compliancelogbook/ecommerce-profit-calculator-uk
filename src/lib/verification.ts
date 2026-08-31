@@ -1,3 +1,4 @@
+import type { Platform } from '../data/types';
 import type { FeeLine } from './types';
 
 /**
@@ -16,4 +17,32 @@ export function allLinesVerifiedAsOf(feeLines: FeeLine[], verifiedDateIso: strin
       (l.verificationStatus === 'SPEC_VERIFIED' || l.verificationStatus === 'AUDIT_VERIFIED') &&
       l.verifiedAt === verifiedDateIso
   );
+}
+
+/**
+ * Per-platform "fees last verified" date, additive so a new platform
+ * declares its own date rather than silently inheriting (or failing to
+ * match) a single shared/hardcoded constant. Existing platforms keep their
+ * original 16 August 2026 launch-audit date unchanged.
+ */
+export const PLATFORM_VERIFIED_DATE: Record<Platform, { iso: string; display: string }> = {
+  SHOPIFY: { iso: '2026-08-16', display: '16 August 2026' },
+  ETSY: { iso: '2026-08-16', display: '16 August 2026' },
+  EBAY: { iso: '2026-08-16', display: '16 August 2026' },
+  AMAZON: { iso: '2026-08-16', display: '16 August 2026' },
+  TIKTOK: { iso: '2026-08-31', display: '31 August 2026' },
+};
+
+/**
+ * Resolves the "Fees last verified" banner for a result, using the
+ * verification date of whichever platform its fee lines belong to — or
+ * null when the lines don't carry a platform, or aren't uniformly verified
+ * as of THAT platform's date (see allLinesVerifiedAsOf).
+ */
+export function verifiedBannerFor(feeLines: FeeLine[]): { display: string } | null {
+  const platform = feeLines.find((l) => l.platform)?.platform;
+  if (!platform) return null;
+  const entry = PLATFORM_VERIFIED_DATE[platform];
+  if (!allLinesVerifiedAsOf(feeLines, entry.iso)) return null;
+  return { display: entry.display };
 }

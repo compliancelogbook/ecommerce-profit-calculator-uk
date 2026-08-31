@@ -57,6 +57,13 @@ export interface CalculationResult {
   currencyConversionFee: number;
   advertisingFee: number;
   allocatedSubscriptionCost: number;
+  /**
+   * Lump-sum, user-entered actual costs that have no published fee schedule
+   * to calculate from (e.g. TikTok Shop fulfilment/FBT, ads spend, storage,
+   * returns) — entered as-is, never estimated. Zero for every engine that
+   * doesn't collect one.
+   */
+  otherPlatformCosts: number;
 
   vatOnFees: number;
   potentiallyReclaimableVat: number;

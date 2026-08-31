@@ -2,7 +2,7 @@
 // Data files under src/data/*.fees.ts describe WHAT the fees are.
 // src/lib/engines/*.ts describe HOW they are applied. Never mix the two.
 
-export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON';
+export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON' | 'TIKTOK';
 
 export type VerificationStatus =
   // Number is taken verbatim from the brief this dataset was built against,

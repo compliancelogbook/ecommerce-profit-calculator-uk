@@ -8,6 +8,7 @@ const ROUTES: { path: string; priority: number; changeFrequency: 'weekly' | 'mon
   { path: '/etsy-fee-calculator', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/ebay-fee-calculator', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/amazon-fee-calculator', priority: 0.8, changeFrequency: 'weekly' },
+  { path: '/tiktok-shop-fee-calculator', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/methodology', priority: 0.5, changeFrequency: 'monthly' },
 ];
 

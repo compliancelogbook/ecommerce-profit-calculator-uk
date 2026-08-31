@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# source workbooks used only locally to (re)generate committed datasets —
+# see src/data/sources/README.md for where to obtain and verify them
+src/data/sources/*.xlsx

@@ -16,6 +16,7 @@ export interface ResultParts {
   currencyConversionFee?: Money;
   advertisingFee?: Money;
   allocatedSubscriptionCost?: Money;
+  otherPlatformCosts?: Money;
 
   vatOnFees?: Money;
   potentiallyReclaimableVat?: Money;
@@ -43,6 +44,7 @@ export function buildResult(parts: ResultParts): CalculationResult {
   const currencyConversionFee = parts.currencyConversionFee ?? ZERO;
   const advertisingFee = parts.advertisingFee ?? ZERO;
   const allocatedSubscriptionCost = parts.allocatedSubscriptionCost ?? ZERO;
+  const otherPlatformCosts = parts.otherPlatformCosts ?? ZERO;
   const vatOnFees = parts.vatOnFees ?? ZERO;
   const potentiallyReclaimableVat = parts.potentiallyReclaimableVat ?? ZERO;
 
@@ -55,6 +57,7 @@ export function buildResult(parts: ResultParts): CalculationResult {
     currencyConversionFee,
     advertisingFee,
     allocatedSubscriptionCost,
+    otherPlatformCosts,
   ]);
 
   const totalCashFees = exVatFees.plus(vatOnFees);
@@ -78,6 +81,7 @@ export function buildResult(parts: ResultParts): CalculationResult {
     currencyConversionFee: toRawNumber(currencyConversionFee),
     advertisingFee: toRawNumber(advertisingFee),
     allocatedSubscriptionCost: toRawNumber(allocatedSubscriptionCost),
+    otherPlatformCosts: toRawNumber(otherPlatformCosts),
     vatOnFees: toRawNumber(vatOnFees),
     potentiallyReclaimableVat: toRawNumber(potentiallyReclaimableVat),
     totalCashFees: toRawNumber(totalCashFees),

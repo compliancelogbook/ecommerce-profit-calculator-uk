@@ -4,17 +4,20 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
 import { EBAY_CATEGORIES } from '../../data/ebay.fees';
+import { TIKTOK_CATEGORIES } from '../../data/tiktok.fees';
 import type { VatProfile } from '../../data/vat';
 import { calculateShopify } from '../../lib/engines/shopify';
 import { calculateEtsy } from '../../lib/engines/etsy';
 import { calculateEbay } from '../../lib/engines/ebay';
 import { calculateAmazon } from '../../lib/engines/amazon';
+import { calculateTikTok } from '../../lib/engines/tiktok';
 import type { CalculationResult } from '../../lib/types';
 import {
   parseManualCategoryRate,
   parseNonNegativeAmount,
   parseNonNegativeFixedFee,
   parseNonNegativePercent,
+  parseOptionalAffiliateRate,
   parseOptionalPositiveInteger,
   parsePositiveFxRate,
   parsePositiveWholeQuantity,
@@ -25,11 +28,18 @@ import ShopifyPanel, { type ShopifyPanelState } from './ShopifyPanel';
 import EtsyPanel, { type EtsyPanelState } from './EtsyPanel';
 import EbayPanel, { type EbayPanelState } from './EbayPanel';
 import AmazonPanel, { type AmazonPanelState } from './AmazonPanel';
+import TikTokPanel, { defaultCategoryIdForGroup, TIKTOK_OTHER_GROUP, type TikTokPanelState } from './TikTokPanel';
 import ResultsPanel from './ResultsPanel';
 
-export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON';
+export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON' | 'TIKTOK';
 
-const PLATFORM_LABEL: Record<Platform, string> = { SHOPIFY: 'Shopify', ETSY: 'Etsy', EBAY: 'eBay', AMAZON: 'Amazon' };
+const PLATFORM_LABEL: Record<Platform, string> = {
+  SHOPIFY: 'Shopify',
+  ETSY: 'Etsy',
+  EBAY: 'eBay',
+  AMAZON: 'Amazon',
+  TIKTOK: 'TikTok Shop',
+};
 
 function err<T>(r: ValidationResult<T>): string | undefined {
   return r.ok ? undefined : r.error;
@@ -81,6 +91,21 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     expectedMonthlyUnits: '',
   });
 
+  const [tiktok, setTiktok] = useState<TikTokPanelState>(() => {
+    const categoryGroup = TIKTOK_CATEGORIES[0]?.category ?? TIKTOK_OTHER_GROUP;
+    return {
+      categoryGroup,
+      categoryId: defaultCategoryIdForGroup(categoryGroup),
+      manualCategoryRate: '',
+      sellerDiscount: '0',
+      platformDiscount: '0',
+      promotionalRateEnabled: false,
+      promotionalRate: '',
+      affiliateCommissionRate: '',
+      otherActualCosts: '0',
+    };
+  });
+
   // --- Validation ---------------------------------------------------------
   // Two tiers, deliberately different:
   //
@@ -111,7 +136,7 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     shippingCost: err(shippingCostR),
     quantity: err(quantityR),
   };
-  const hasBlockingError = Object.values(sharedErrors).some(Boolean);
+  const sharedHasBlockingError = Object.values(sharedErrors).some(Boolean);
 
   const shopifyMonthlyOrdersR = parseOptionalPositiveInteger(shopify.expectedMonthlyOrders, 'Expected monthly orders');
   const shopifyThirdPartyActive = shopify.processor === 'THIRD_PARTY' && shopify.useThirdPartyAssumption;
@@ -143,6 +168,30 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     manualCategoryRate: amazonManualActive ? err(amazonManualRateR) : undefined,
     expectedMonthlyUnits: err(amazonMonthlyUnitsR),
   };
+
+  // Seller discount / platform discount / other actual costs are money
+  // AMOUNTS that feed directly into the commission basis and gross revenue
+  // (exactly like the shared sold price/shipping fields) — an invalid value
+  // there would make the entire TikTok result misleading, so they're
+  // core/blocking for TikTok specifically, not soft/excludable like a rate.
+  const tiktokManualActive = tiktok.categoryId === UNSUPPORTED_CATEGORY_ID;
+  const tiktokManualRateR = parseManualCategoryRate(tiktok.manualCategoryRate);
+  const tiktokPromoRateR = parseManualCategoryRate(tiktok.promotionalRate);
+  const tiktokAffiliateRateR = parseOptionalAffiliateRate(tiktok.affiliateCommissionRate);
+  const tiktokSellerDiscountR = parseNonNegativeAmount(tiktok.sellerDiscount, 'Seller discount');
+  const tiktokPlatformDiscountR = parseNonNegativeAmount(tiktok.platformDiscount, 'Platform discount');
+  const tiktokOtherCostsR = parseNonNegativeAmount(tiktok.otherActualCosts, 'Other TikTok Shop costs');
+  const tiktokErrors = {
+    manualCategoryRate: tiktokManualActive ? err(tiktokManualRateR) : undefined,
+    promotionalRate: tiktok.promotionalRateEnabled ? err(tiktokPromoRateR) : undefined,
+    affiliateCommissionRate: err(tiktokAffiliateRateR),
+    sellerDiscount: err(tiktokSellerDiscountR),
+    platformDiscount: err(tiktokPlatformDiscountR),
+    otherActualCosts: err(tiktokOtherCostsR),
+  };
+  const tiktokHasBlockingError = Boolean(tiktokErrors.sellerDiscount || tiktokErrors.platformDiscount || tiktokErrors.otherActualCosts);
+
+  const hasBlockingError = sharedHasBlockingError || (platform === 'TIKTOK' && tiktokHasBlockingError);
 
   const result: CalculationResult | null = useMemo(() => {
     if (hasBlockingError) return null;
@@ -210,9 +259,24 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
           expectedMonthlyUnits: val(amazonMonthlyUnitsR, null),
           vatProfile,
         });
+      case 'TIKTOK':
+        return calculateTikTok({
+          soldPrice: shared.soldPrice,
+          itemCost: shared.itemCost,
+          customerPaidShipping: shared.shippingCharged,
+          shippingCost: shared.shippingCost,
+          quantity: shared.quantity,
+          sellerDiscount: val(tiktokSellerDiscountR, 0),
+          platformDiscount: val(tiktokPlatformDiscountR, 0),
+          categoryId: tiktok.categoryId,
+          manualCategoryRate: tiktokManualActive ? val(tiktokManualRateR, null) : null,
+          promotionalRate: tiktok.promotionalRateEnabled ? val(tiktokPromoRateR, null) : null,
+          affiliateCommissionRate: val(tiktokAffiliateRateR, null),
+          otherActualCosts: val(tiktokOtherCostsR, 0),
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBlockingError, platform, soldPrice, itemCost, shippingCharged, shippingCost, quantity, vatProfile, shopify, etsy, ebay, amazon]);
+  }, [hasBlockingError, platform, soldPrice, itemCost, shippingCharged, shippingCost, quantity, vatProfile, shopify, etsy, ebay, amazon, tiktok]);
 
   return (
     <div className="w-full bg-[#000000] rounded-xl border border-[#333] p-0 md:p-0 relative overflow-hidden font-sans">
@@ -283,6 +347,9 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
               {platform === 'AMAZON' && (
                 <AmazonPanel state={amazon} onChange={(patch) => setAmazon((s) => ({ ...s, ...patch }))} errors={amazonErrors} />
               )}
+              {platform === 'TIKTOK' && (
+                <TikTokPanel state={tiktok} onChange={(patch) => setTiktok((s) => ({ ...s, ...patch }))} errors={tiktokErrors} />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -292,7 +359,13 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
             result={result}
             blockingError={
               hasBlockingError
-                ? `Fix the highlighted transaction detail${Object.values(sharedErrors).filter(Boolean).length > 1 ? 's' : ''} to see a calculation.`
+                ? `Fix the highlighted transaction detail${
+                    Object.values(sharedErrors).filter(Boolean).length +
+                      (platform === 'TIKTOK' ? [tiktokErrors.sellerDiscount, tiktokErrors.platformDiscount, tiktokErrors.otherActualCosts].filter(Boolean).length : 0) >
+                    1
+                      ? 's'
+                      : ''
+                  } to see a calculation.`
                 : null
             }
           />

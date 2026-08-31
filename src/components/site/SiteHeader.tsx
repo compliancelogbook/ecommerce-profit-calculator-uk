@@ -5,6 +5,7 @@ const NAV_LINKS = [
   { href: '/etsy-fee-calculator', label: 'Etsy' },
   { href: '/ebay-fee-calculator', label: 'eBay' },
   { href: '/amazon-fee-calculator', label: 'Amazon' },
+  { href: '/tiktok-shop-fee-calculator', label: 'TikTok Shop' },
   { href: '/methodology', label: 'Methodology' },
 ];
 

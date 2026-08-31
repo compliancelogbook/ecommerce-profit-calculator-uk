@@ -2,16 +2,13 @@
 
 import { formatGBP, formatGBPRaw } from '../../lib/format';
 import type { CalculationResult, ConfidenceLevel } from '../../lib/types';
-import { allLinesVerifiedAsOf } from '../../lib/verification';
+import { verifiedBannerFor } from '../../lib/verification';
 
 const CONFIDENCE_COPY: Record<ConfidenceLevel, { label: string; className: string }> = {
   EXACT_FOR_SELECTED_INPUTS: { label: 'Exact for selected inputs', className: 'bg-[#0a2a12] text-[#4ade80] border-[#1f5c33]' },
   ASSUMPTION_DEPENDENT: { label: 'Assumption-dependent', className: 'bg-[#2a2308] text-[#facc15] border-[#5c4c1f]' },
   EXCLUDES_VARIABLE_FEES: { label: 'Excludes variable fees', className: 'bg-[#2a1208] text-[#fb923c] border-[#5c2e1f]' },
 };
-
-const VERIFIED_DATE_DISPLAY = '16 August 2026';
-const VERIFIED_DATE_ISO = '2026-08-16';
 
 export default function ResultsPanel({ result, blockingError }: { result: CalculationResult | null; blockingError?: string | null }) {
   if (!result) {
@@ -29,9 +26,11 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
   }
 
   // Only claim "fees last verified" when every line contributing to this
-  // result is independently verified as of that date — a mix of verified,
-  // unverified and manually-entered lines must never imply blanket verification.
-  const allVerified = allLinesVerifiedAsOf(result.feeLines, VERIFIED_DATE_ISO);
+  // result is independently verified as of ITS platform's verification date
+  // — a mix of verified, unverified and manually-entered lines must never
+  // imply blanket verification, and different platforms may have been
+  // verified on different dates.
+  const verifiedBanner = verifiedBannerFor(result.feeLines);
   const sources = Array.from(new Map(result.feeLines.filter((l) => l.sourceUrl).map((l) => [l.sourceUrl, l])).values());
   const confidence = CONFIDENCE_COPY[result.confidence];
 
@@ -131,7 +130,7 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
       )}
 
       <div className="mt-8 pt-6 border-t border-[#111] space-y-2">
-        {allVerified && <div className="text-[11px] text-[#666]">Fees last verified: {VERIFIED_DATE_DISPLAY}</div>}
+        {verifiedBanner && <div className="text-[11px] text-[#666]">Fees last verified: {verifiedBanner.display}</div>}
         {sources.length > 0 && (
           <div className="text-[11px] text-[#666] space-y-1">
             {sources.map((s) => (
