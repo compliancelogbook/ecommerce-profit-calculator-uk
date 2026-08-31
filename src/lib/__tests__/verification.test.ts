@@ -92,6 +92,7 @@ describe('verifiedBannerFor', () => {
       platformDiscount: 0,
       categoryId: 'AUTOMOTIVE_MOTORCYCLE__ALL',
       otherActualCosts: 0,
+      vatProfile: 'NOT_REGISTERED',
     });
     expect(verifiedBannerFor(r.feeLines)).toEqual({ display: '31 August 2026' });
   });
@@ -108,6 +109,7 @@ describe('verifiedBannerFor', () => {
       categoryId: UNSUPPORTED_CATEGORY_ID,
       manualCategoryRate: 0.09,
       otherActualCosts: 0,
+      vatProfile: 'NOT_REGISTERED',
     });
     expect(verifiedBannerFor(r.feeLines)).toBeNull();
   });
@@ -123,6 +125,7 @@ describe('verifiedBannerFor', () => {
       platformDiscount: 0,
       categoryId: 'AUTOMOTIVE_MOTORCYCLE__ALL',
       otherActualCosts: 0,
+      vatProfile: 'NOT_REGISTERED',
     });
     expect(allLinesVerifiedAsOf(r.feeLines, '2026-08-16')).toBe(false);
     expect(allLinesVerifiedAsOf(r.feeLines, '2026-08-31')).toBe(true);

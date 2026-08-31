@@ -2,6 +2,7 @@
 
 import { TIKTOK_CATEGORIES } from '../../data/tiktok.fees';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
+import type { TikTokPanelErrors, TikTokRawPanelInput } from '../../lib/engines/tiktok-resolve';
 import { CheckboxField, MoneyField, NumberField, SelectField } from './inputs';
 
 // Sentinel for the top-level group selector only (a UI-internal grouping
@@ -14,28 +15,12 @@ function rulesForGroup(group: string) {
   return TIKTOK_CATEGORIES.filter((c) => c.category === group);
 }
 
-export interface TikTokPanelState {
+export interface TikTokPanelState extends TikTokRawPanelInput {
   /** Top-level category group, or OTHER_GROUP for "not in the verified schedule". */
   categoryGroup: string;
-  /** The resolved TikTokCategoryRule id, or UNSUPPORTED_CATEGORY_ID. */
-  categoryId: string;
-  manualCategoryRate: string;
-  sellerDiscount: string;
-  platformDiscount: string;
-  promotionalRateEnabled: boolean;
-  promotionalRate: string;
-  affiliateCommissionRate: string;
-  otherActualCosts: string;
 }
 
-export interface TikTokPanelErrors {
-  manualCategoryRate?: string;
-  promotionalRate?: string;
-  affiliateCommissionRate?: string;
-  sellerDiscount?: string;
-  platformDiscount?: string;
-  otherActualCosts?: string;
-}
+export type { TikTokPanelErrors };
 
 /** Picks the default rule id for a newly selected top-level group. */
 export function defaultCategoryIdForGroup(group: string): string {
@@ -72,6 +57,10 @@ export default function TikTokPanel({
       <p className="text-xs text-[#888] leading-relaxed">
         The complete published TikTok Shop UK commission schedule (343 category/subcategory rules) is implemented below. Any
         category genuinely not on the schedule still requires a manually entered rate rather than a guess.
+      </p>
+      <p className="text-xs text-[#888] leading-relaxed">
+        &quot;Original Product Price&quot; above is the price before any discount. Seller discount and platform discount are
+        entered separately below as order totals — they are not subtracted from the price field itself.
       </p>
 
       <SelectField
@@ -149,14 +138,15 @@ export default function TikTokPanel({
       </p>
 
       <MoneyField
-        label="Other TikTok Shop costs (fulfilment/FBT, ads, storage, returns — actual)"
+        label="Other TikTok Shop costs (fulfilment/FBT, ads, storage, returns — actual, incl. VAT)"
         value={state.otherActualCosts}
         onChange={(v) => onChange({ otherActualCosts: v })}
         error={errors?.otherActualCosts}
       />
       <p className="text-[11px] text-[#666] -mt-4">
-        Enter the actual amount you already know — these don&apos;t have a published fee schedule this build verifies against,
-        so nothing is estimated on your behalf.
+        Enter the total cash amount you were actually charged, including any VAT — this isn&apos;t a published, automatically
+        verified marketplace fee schedule, so nothing is estimated on your behalf. If you&apos;re VAT-registered, any VAT
+        recovery on this amount is your own responsibility to model — it isn&apos;t calculated here.
       </p>
     </div>
   );

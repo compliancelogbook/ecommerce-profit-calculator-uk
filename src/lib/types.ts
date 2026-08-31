@@ -38,6 +38,14 @@ export interface FeeLine {
   /** Unrounded VAT amount in pounds, when known. */
   vatAmount?: number;
   vatUnconfirmed?: boolean;
+  /**
+   * True when `amountExVat` is already a VAT-inclusive cash figure (the
+   * published rate itself includes VAT, e.g. TikTok Shop's commission) —
+   * distinct from `vatAmount`/`vatRate`, which describe VAT added
+   * separately ON TOP of an ex-VAT figure. A line should set at most one of
+   * "vatInclusive" or "vatAmount/vatRate", never both.
+   */
+  vatInclusive?: boolean;
   sourceUrl?: string;
   verifiedAt?: string | null;
   verificationStatus?: VerificationStatus;

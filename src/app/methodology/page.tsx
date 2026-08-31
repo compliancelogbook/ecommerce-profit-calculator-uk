@@ -277,9 +277,12 @@ export default function MethodologyPage() {
               category data was verified 31 August 2026.
             </p>
             <p>
-              <strong className="text-[#eaeaea]">Commission is inclusive of VAT.</strong> Unlike this build&apos;s other platforms,
-              TikTok Shop&apos;s published commission rate already includes applicable VAT — no separate 20% UK VAT is added on top of
-              it. The standard rate is 9%; a minority of categories/subcategories are confirmed at a reduced 5%.
+              <strong className="text-[#eaeaea]">Commission is a VAT-inclusive cash rate.</strong> Unlike this build&apos;s other
+              platforms, TikTok Shop&apos;s published commission rate already includes applicable VAT — no separate 20% UK VAT is added
+              on top of it, and the full published amount is deducted as-is. The standard rate is 9%; a minority of
+              categories/subcategories are confirmed at a reduced 5%. Each commission fee line carries a VAT-inclusive flag so this is
+              shown explicitly, and the shared summary&apos;s &quot;VAT added separately to fees&quot; figure is correctly £0 for TikTok —
+              it describes VAT added on top, not VAT already embedded in the commission.
             </p>
             <p>
               <strong className="text-[#eaeaea]">Platform commission and affiliate/creator commission use different bases.</strong> TikTok
@@ -294,25 +297,84 @@ export default function MethodologyPage() {
               </li>
               <li>
                 <strong className="text-[#eaeaea]">Affiliate/creator commission basis</strong> = product price minus seller discount
-                minus platform discount, floored at £0 — it excludes customer-paid shipping entirely, and (unlike the platform basis) it
-                does subtract the platform discount. Same order, 10% affiliate rate: basis = 100 − 10 − 10 = £80; commission = £8.00.
+                minus platform discount — it excludes customer-paid shipping entirely, and (unlike the platform basis) it does subtract
+                the platform discount. Same order, 10% affiliate rate: basis = 100 − 10 − 10 = £80; commission = £8.00. Seller discount
+                plus platform discount is validated against the product subtotal (original product price × quantity) before either basis
+                is calculated — an order where they&apos;d exceed the subtotal is rejected outright, never floored or normalised into a
+                plausible-looking but fictitious result.
               </li>
             </ul>
             <p>
-              <strong className="text-[#eaeaea]">Affiliate/creator commission is optional and seller-entered.</strong> A rate is only
-              applied when the seller enters one — it is never assumed — and it must fall within TikTok&apos;s documented 1%–80% range;
-              blank or 0% means no affiliate arrangement applies. It is shown as a fully separate deduction from the platform commission,
-              on its own basis, never blended with it.
+              <strong className="text-[#eaeaea]">Affiliate/creator commission is optional and seller-entered, and its VAT treatment is
+              disclosed rather than modelled.</strong> A rate is only applied when the seller enters one — it is never assumed — and it
+              must fall within TikTok&apos;s documented 1%–80% range; blank or exactly 0% means no affiliate arrangement applies. A
+              supplied but invalid rate blocks the whole result rather than being silently treated as &quot;not applicable&quot;. Whenever
+              an affiliate commission is included, its VAT treatment isn&apos;t fully known — it depends on the individual creator and
+              whether they issue a VAT invoice — so the result is disclosed as excluding a variable and downgraded to{' '}
+              <code className="text-[#eaeaea]">EXCLUDES_VARIABLE_FEES</code> rather than reported as exact. See{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=7753826522334978"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=7753826522334978
+              </a>
+              .
             </p>
             <p>
-              <strong className="text-[#eaeaea]">No rate stacking.</strong> An optional seller-specific promotional commission rate, when
-              entered, entirely replaces the category rate — it is never added to or combined with it.
+              <strong className="text-[#eaeaea]">No rate stacking; a manually entered rate is always disclosed as an assumption.</strong>{' '}
+              An optional seller-specific promotional commission rate, when entered, entirely replaces the category rate — never added to
+              or combined with it — and adds{' '}
+              <code className="text-[#eaeaea]">ASSUMPTION_DEPENDENT</code> to the result&apos;s confidence, exactly like a manually
+              entered rate for a category outside the verified schedule. An enabled-but-invalid promotional rate (blank, malformed, zero,
+              negative, or above the allowed ceiling) blocks the entire result until corrected — it is never silently excluded while the
+              rest of the calculation continues to look exact.
             </p>
             <p>
-              <strong className="text-[#eaeaea]">TikTok Shop fulfilment (FBT), ads, storage and return costs are not calculated from a
-              schedule.</strong> These have no published, verified fee schedule in this build&apos;s dataset, so — consistent with the
-              existing &quot;never guess&quot; approach used elsewhere for the seller&apos;s actual shipping cost — they are entered as a
-              single actual-cost amount rather than estimated.
+              <strong className="text-[#eaeaea]">TikTok Shop fulfilment (FBT), ads, storage and return costs are a user-entered actual
+              cash cost, not an automatically verified marketplace schedule.</strong> These have no published, verified fee schedule in
+              this build&apos;s dataset, so — consistent with the existing &quot;never guess&quot; approach used elsewhere for the
+              seller&apos;s actual shipping cost — they are entered as the total cash amount actually charged,{' '}
+              <strong className="text-[#eaeaea]">including any VAT</strong>, rather than estimated. Including this amount always adds{' '}
+              <code className="text-[#eaeaea]">ASSUMPTION_DEPENDENT</code> at minimum; a VAT-registered seller additionally sees a
+              disclosure that potential VAT recovery on this entered amount is not modelled.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">VAT-registered vs non-VAT-registered sellers.</strong> For a non-VAT-registered seller,
+              the full VAT-inclusive commission is the correct cash deduction as published, with nothing left unmodelled — such a result
+              can report <code className="text-[#eaeaea]">EXACT_FOR_SELECTED_INPUTS</code>. For a VAT-registered seller, the VAT embedded
+              within the commission is not separated out or estimated — this build never derives a reclaimable VAT amount without the
+              seller&apos;s own Platform Service Fee invoice — so the result is disclosed and downgraded to{' '}
+              <code className="text-[#eaeaea]">EXCLUDES_VARIABLE_FEES</code> instead. The commission amount itself is identical either
+              way; only the confidence/disclosure differs. Sources:{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=7753824408913665"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=7753824408913665
+              </a>
+              ,{' '}
+              <a
+                href="https://seller-uk.tiktok.com/university/essay?knowledge_id=6837879071016706"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                knowledge_id=6837879071016706
+              </a>
+              , and{' '}
+              <a
+                href="https://www.gov.uk/charge-reclaim-record-vat/reclaim-vat-business-expenses"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                gov.uk/charge-reclaim-record-vat/reclaim-vat-business-expenses
+              </a>
+              .
             </p>
             <p>
               <strong className="text-[#eaeaea]">One source-data oddity preserved verbatim.</strong> The workbook&apos;s Pre-Owned
@@ -433,7 +495,10 @@ export default function MethodologyPage() {
           </ol>
           <p className="text-sm text-[#888] leading-relaxed">
             Because Shopify billing VAT and Amazon referral-fee VAT are always excluded, those two platforms can never report
-            &quot;Exact for selected inputs&quot; — that is intentional, not a bug.
+            &quot;Exact for selected inputs&quot; — that is intentional, not a bug. TikTok Shop is the one platform where this varies:
+            a non-VAT-registered seller can report &quot;Exact for selected inputs&quot; (the VAT-inclusive commission is the complete,
+            correct cash figure for them), while a VAT-registered seller is downgraded to &quot;Excludes variable fees&quot; because the
+            embedded VAT component isn&apos;t separated out — see the TikTok Shop UK section above.
           </p>
         </section>
 
@@ -443,7 +508,10 @@ export default function MethodologyPage() {
             Negative prices/costs/shipping, zero or negative quantities, fractional quantities, malformed numbers, and invalid FX/processor/
             manual-category rates are rejected with an inline error rather than silently converted to 0 or 1 — no calculation is shown until
             every field relevant to the selected platform is valid. A manually entered category rate of exactly 0% is rejected outright: it
-            is never a real supported fallback value, only a missing one.
+            is never a real supported fallback value, only a missing one. For TikTok Shop specifically, an enabled-but-invalid promotional
+            rate and a supplied (nonblank) invalid affiliate rate both block the whole result the same way, rather than being silently
+            excluded while the rest of the calculation continues to look exact — and a seller discount plus platform discount that would
+            exceed the product subtotal (original product price × quantity) is rejected outright, never floored or normalised.
           </p>
         </section>
 

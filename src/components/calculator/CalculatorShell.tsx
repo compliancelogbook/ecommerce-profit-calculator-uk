@@ -10,14 +10,13 @@ import { calculateShopify } from '../../lib/engines/shopify';
 import { calculateEtsy } from '../../lib/engines/etsy';
 import { calculateEbay } from '../../lib/engines/ebay';
 import { calculateAmazon } from '../../lib/engines/amazon';
-import { calculateTikTok } from '../../lib/engines/tiktok';
+import { resolveTikTok } from '../../lib/engines/tiktok-resolve';
 import type { CalculationResult } from '../../lib/types';
 import {
   parseManualCategoryRate,
   parseNonNegativeAmount,
   parseNonNegativeFixedFee,
   parseNonNegativePercent,
-  parseOptionalAffiliateRate,
   parseOptionalPositiveInteger,
   parsePositiveFxRate,
   parsePositiveWholeQuantity,
@@ -169,27 +168,30 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
     expectedMonthlyUnits: err(amazonMonthlyUnitsR),
   };
 
-  // Seller discount / platform discount / other actual costs are money
-  // AMOUNTS that feed directly into the commission basis and gross revenue
-  // (exactly like the shared sold price/shipping fields) — an invalid value
-  // there would make the entire TikTok result misleading, so they're
-  // core/blocking for TikTok specifically, not soft/excludable like a rate.
-  const tiktokManualActive = tiktok.categoryId === UNSUPPORTED_CATEGORY_ID;
-  const tiktokManualRateR = parseManualCategoryRate(tiktok.manualCategoryRate);
-  const tiktokPromoRateR = parseManualCategoryRate(tiktok.promotionalRate);
-  const tiktokAffiliateRateR = parseOptionalAffiliateRate(tiktok.affiliateCommissionRate);
-  const tiktokSellerDiscountR = parseNonNegativeAmount(tiktok.sellerDiscount, 'Seller discount');
-  const tiktokPlatformDiscountR = parseNonNegativeAmount(tiktok.platformDiscount, 'Platform discount');
-  const tiktokOtherCostsR = parseNonNegativeAmount(tiktok.otherActualCosts, 'Other TikTok Shop costs');
-  const tiktokErrors = {
-    manualCategoryRate: tiktokManualActive ? err(tiktokManualRateR) : undefined,
-    promotionalRate: tiktok.promotionalRateEnabled ? err(tiktokPromoRateR) : undefined,
-    affiliateCommissionRate: err(tiktokAffiliateRateR),
-    sellerDiscount: err(tiktokSellerDiscountR),
-    platformDiscount: err(tiktokPlatformDiscountR),
-    otherActualCosts: err(tiktokOtherCostsR),
-  };
-  const tiktokHasBlockingError = Boolean(tiktokErrors.sellerDiscount || tiktokErrors.platformDiscount || tiktokErrors.otherActualCosts);
+  // TikTok's validation + engine-call composition lives in resolveTikTok
+  // (src/lib/engines/tiktok-resolve.ts) rather than inline here — it's
+  // exactly the same function this component calls and the one the test
+  // suite exercises directly, so an enabled-but-invalid rate can't silently
+  // fall back to "no override" and continue as an apparently-exact result
+  // without a test catching it. Seller discount / platform discount / other
+  // actual costs, an enabled-but-invalid promotional rate, and a supplied
+  // (nonblank) invalid affiliate rate are all core/blocking for TikTok —
+  // they either affect the commission basis directly or the core commission
+  // rate itself, unlike a soft/excludable field such as an unmatched
+  // category's manual rate.
+  const tiktokResolution = resolveTikTok(
+    {
+      soldPrice: val(soldPriceR, 0),
+      itemCost: val(itemCostR, 0),
+      shippingCharged: val(shippingChargedR, 0),
+      shippingCost: val(shippingCostR, 0),
+      quantity: val(quantityR, 1),
+      vatProfile,
+    },
+    tiktok
+  );
+  const tiktokErrors = tiktokResolution.errors;
+  const tiktokHasBlockingError = tiktokResolution.hasBlockingError;
 
   const hasBlockingError = sharedHasBlockingError || (platform === 'TIKTOK' && tiktokHasBlockingError);
 
@@ -260,20 +262,9 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
           vatProfile,
         });
       case 'TIKTOK':
-        return calculateTikTok({
-          soldPrice: shared.soldPrice,
-          itemCost: shared.itemCost,
-          customerPaidShipping: shared.shippingCharged,
-          shippingCost: shared.shippingCost,
-          quantity: shared.quantity,
-          sellerDiscount: val(tiktokSellerDiscountR, 0),
-          platformDiscount: val(tiktokPlatformDiscountR, 0),
-          categoryId: tiktok.categoryId,
-          manualCategoryRate: tiktokManualActive ? val(tiktokManualRateR, null) : null,
-          promotionalRate: tiktok.promotionalRateEnabled ? val(tiktokPromoRateR, null) : null,
-          affiliateCommissionRate: val(tiktokAffiliateRateR, null),
-          otherActualCosts: val(tiktokOtherCostsR, 0),
-        });
+        // Already fully resolved above (errors, blocking, and the engine
+        // call are one composed unit — see resolveTikTok).
+        return tiktokResolution.result;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasBlockingError, platform, soldPrice, itemCost, shippingCharged, shippingCost, quantity, vatProfile, shopify, etsy, ebay, amazon, tiktok]);
@@ -308,7 +299,12 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MoneyField label="Sold Price (per unit)" value={soldPrice} onChange={setSoldPrice} error={sharedErrors.soldPrice} />
+            <MoneyField
+              label={platform === 'TIKTOK' ? 'Original Product Price (per unit, before discounts)' : 'Sold Price (per unit)'}
+              value={soldPrice}
+              onChange={setSoldPrice}
+              error={sharedErrors.soldPrice}
+            />
             <MoneyField label="Item Cost (per unit)" value={itemCost} onChange={setItemCost} error={sharedErrors.itemCost} />
             <MoneyField
               label="Shipping Charged (order total)"
@@ -361,7 +357,15 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
               hasBlockingError
                 ? `Fix the highlighted transaction detail${
                     Object.values(sharedErrors).filter(Boolean).length +
-                      (platform === 'TIKTOK' ? [tiktokErrors.sellerDiscount, tiktokErrors.platformDiscount, tiktokErrors.otherActualCosts].filter(Boolean).length : 0) >
+                      (platform === 'TIKTOK'
+                        ? [
+                            tiktokErrors.sellerDiscount,
+                            tiktokErrors.platformDiscount,
+                            tiktokErrors.otherActualCosts,
+                            tiktokErrors.promotionalRate,
+                            tiktokErrors.affiliateCommissionRate,
+                          ].filter(Boolean).length
+                        : 0) >
                     1
                       ? 's'
                       : ''

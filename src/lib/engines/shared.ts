@@ -151,6 +151,8 @@ export function makeFeeLine(params: {
   vatRate?: number;
   vatAmount?: Money;
   vatUnconfirmed?: boolean;
+  /** True when `amount` is already a VAT-inclusive cash figure — see the FeeLine doc comment. */
+  vatInclusive?: boolean;
   notes?: string;
 }): FeeLine {
   return {
@@ -168,6 +170,7 @@ export function makeFeeLine(params: {
     vatRate: params.vatRate,
     vatAmount: params.vatAmount !== undefined ? toRawNumber(params.vatAmount) : undefined,
     vatUnconfirmed: params.vatUnconfirmed,
+    vatInclusive: params.vatInclusive,
     sourceUrl: params.source?.url,
     verifiedAt: params.source?.verifiedAt,
     verificationStatus: params.source?.verificationStatus,

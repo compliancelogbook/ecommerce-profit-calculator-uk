@@ -57,7 +57,10 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
       <div className="space-y-2">
         {result.feeLines.map((line) => (
           <div key={line.id} className="flex justify-between items-baseline gap-4 group">
-            <span className="text-[#888] text-xs group-hover:text-[#eaeaea] transition-colors">{line.label}</span>
+            <span className="text-[#888] text-xs group-hover:text-[#eaeaea] transition-colors">
+              {line.label}
+              {line.vatInclusive && <span className="text-[9px] text-[#666] ml-1">(VAT-inclusive)</span>}
+            </span>
             <span className="text-[#888] text-xs tabular-nums whitespace-nowrap">-{formatGBPRaw(line.amountExVat, 3)}</span>
           </div>
         ))}
@@ -66,8 +69,8 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
       <div className="h-px bg-[#111] my-4" />
 
       <div className="space-y-3">
-        <Row label="VAT charged on fees" value={formatGBP(result.vatOnFees)} muted />
-        <Row label="Potentially reclaimable VAT" value={formatGBP(result.potentiallyReclaimableVat)} muted />
+        <Row label="VAT added separately to fees" value={formatGBP(result.vatOnFees)} muted />
+        <Row label="Potentially reclaimable VAT (modelled)" value={formatGBP(result.potentiallyReclaimableVat)} muted />
         <Row label="Total cash fees" value={formatGBP(result.totalCashFees)} />
         <Row label="Estimated economic fees" value={formatGBP(result.estimatedEconomicFees)} muted />
       </div>

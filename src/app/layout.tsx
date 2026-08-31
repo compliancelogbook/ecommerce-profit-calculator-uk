@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
@@ -42,7 +43,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Explicit ReactNode typing rather than the Next.js-generated `LayoutProps<"/">`
+// global — that type only exists after `next build`/`next dev` has run once
+// and produced `.next/types/`. On a genuinely fresh clone, `npx tsc --noEmit`
+// runs before any build step and would otherwise fail here.
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"
