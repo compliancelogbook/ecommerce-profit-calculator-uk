@@ -11,6 +11,7 @@ import { calculateEtsy } from '../../lib/engines/etsy';
 import { calculateEbay } from '../../lib/engines/ebay';
 import { calculateAmazon } from '../../lib/engines/amazon';
 import { resolveTikTok } from '../../lib/engines/tiktok-resolve';
+import { resolveVinted } from '../../lib/engines/vinted-resolve';
 import type { CalculationResult } from '../../lib/types';
 import {
   parseManualCategoryRate,
@@ -28,9 +29,10 @@ import EtsyPanel, { type EtsyPanelState } from './EtsyPanel';
 import EbayPanel, { type EbayPanelState } from './EbayPanel';
 import AmazonPanel, { type AmazonPanelState } from './AmazonPanel';
 import TikTokPanel, { defaultCategoryIdForGroup, TIKTOK_OTHER_GROUP, type TikTokPanelState } from './TikTokPanel';
+import VintedPanel, { type VintedPanelState } from './VintedPanel';
 import ResultsPanel from './ResultsPanel';
 
-export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON' | 'TIKTOK';
+export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON' | 'TIKTOK' | 'VINTED';
 
 const PLATFORM_LABEL: Record<Platform, string> = {
   SHOPIFY: 'Shopify',
@@ -38,6 +40,7 @@ const PLATFORM_LABEL: Record<Platform, string> = {
   EBAY: 'eBay',
   AMAZON: 'Amazon',
   TIKTOK: 'TikTok Shop',
+  VINTED: 'Vinted',
 };
 
 function err<T>(r: ValidationResult<T>): string | undefined {
@@ -103,6 +106,12 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
       affiliateCommissionRate: '',
       otherActualCosts: '0',
     };
+  });
+
+  const [vinted, setVinted] = useState<VintedPanelState>({
+    sellerRoute: 'PRIVATE',
+    visibilityServicePurchased: false,
+    visibilityServiceCost: '',
   });
 
   // --- Validation ---------------------------------------------------------
@@ -193,7 +202,27 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
   const tiktokErrors = tiktokResolution.errors;
   const tiktokHasBlockingError = tiktokResolution.hasBlockingError;
 
-  const hasBlockingError = sharedHasBlockingError || (platform === 'TIKTOK' && tiktokHasBlockingError);
+  // Vinted's "Shipping Charged"/"Actual Shipping Cost" shared fields are
+  // relabelled as "amount received"/"amount paid" (see the panel copy
+  // below) but reuse the exact same underlying validated values — Vinted's
+  // normal prepaid-label flow means both are normally left at £0.
+  const vintedResolution = resolveVinted(
+    {
+      soldPrice: val(soldPriceR, 0),
+      itemCost: val(itemCostR, 0),
+      shippingReceived: val(shippingChargedR, 0),
+      shippingCost: val(shippingCostR, 0),
+      quantity: val(quantityR, 1),
+    },
+    vinted
+  );
+  const vintedErrors = vintedResolution.errors;
+  const vintedHasBlockingError = vintedResolution.hasBlockingError;
+
+  const hasBlockingError =
+    sharedHasBlockingError ||
+    (platform === 'TIKTOK' && tiktokHasBlockingError) ||
+    (platform === 'VINTED' && vintedHasBlockingError);
 
   const result: CalculationResult | null = useMemo(() => {
     if (hasBlockingError) return null;
@@ -265,9 +294,13 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
         // Already fully resolved above (errors, blocking, and the engine
         // call are one composed unit — see resolveTikTok).
         return tiktokResolution.result;
+      case 'VINTED':
+        // Already fully resolved above (errors, blocking, and the engine
+        // call are one composed unit — see resolveVinted).
+        return vintedResolution.result;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBlockingError, platform, soldPrice, itemCost, shippingCharged, shippingCost, quantity, vatProfile, shopify, etsy, ebay, amazon, tiktok]);
+  }, [hasBlockingError, platform, soldPrice, itemCost, shippingCharged, shippingCost, quantity, vatProfile, shopify, etsy, ebay, amazon, tiktok, vinted]);
 
   return (
     <div className="w-full bg-[#000000] rounded-xl border border-[#333] p-0 md:p-0 relative overflow-hidden font-sans">
@@ -307,13 +340,13 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
             />
             <MoneyField label="Item Cost (per unit)" value={itemCost} onChange={setItemCost} error={sharedErrors.itemCost} />
             <MoneyField
-              label="Shipping Charged (order total)"
+              label={platform === 'VINTED' ? 'Shipping Amount You Received (order total)' : 'Shipping Charged (order total)'}
               value={shippingCharged}
               onChange={setShippingCharged}
               error={sharedErrors.shippingCharged}
             />
             <MoneyField
-              label="Actual Shipping Cost (order total)"
+              label={platform === 'VINTED' ? 'Shipping You Paid Yourself (order total)' : 'Actual Shipping Cost (order total)'}
               value={shippingCost}
               onChange={setShippingCost}
               error={sharedErrors.shippingCost}
@@ -321,15 +354,25 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
             <NumberField label="Quantity" value={quantity} onChange={setQuantity} placeholder="1" error={sharedErrors.quantity} />
           </div>
 
-          <SegmentedToggle<VatProfile>
-            label="VAT Profile"
-            value={vatProfile}
-            onChange={setVatProfile}
-            options={[
-              { value: 'NOT_REGISTERED', label: 'Not VAT registered' },
-              { value: 'REGISTERED', label: 'VAT registered' },
-            ]}
-          />
+          {platform === 'VINTED' && (
+            <p className="text-[11px] text-[#666] -mt-4">
+              With Vinted&apos;s normal prepaid-label flow, the buyer purchases shipping directly through Vinted and you
+              wouldn&apos;t ordinarily receive or pay anything for it — leave both shipping fields at £0 unless you actually
+              received a shipping amount or paid for shipping yourself. Nothing is assumed or calculated on your behalf.
+            </p>
+          )}
+
+          {platform !== 'VINTED' && (
+            <SegmentedToggle<VatProfile>
+              label="VAT Profile"
+              value={vatProfile}
+              onChange={setVatProfile}
+              options={[
+                { value: 'NOT_REGISTERED', label: 'Not VAT registered' },
+                { value: 'REGISTERED', label: 'VAT registered' },
+              ]}
+            />
+          )}
 
           <div className="h-px bg-gradient-to-r from-transparent via-[#333] to-transparent my-8"></div>
 
@@ -345,6 +388,9 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
               )}
               {platform === 'TIKTOK' && (
                 <TikTokPanel state={tiktok} onChange={(patch) => setTiktok((s) => ({ ...s, ...patch }))} errors={tiktokErrors} />
+              )}
+              {platform === 'VINTED' && (
+                <VintedPanel state={vinted} onChange={(patch) => setVinted((s) => ({ ...s, ...patch }))} errors={vintedErrors} />
               )}
             </motion.div>
           </AnimatePresence>
@@ -365,7 +411,8 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
                             tiktokErrors.promotionalRate,
                             tiktokErrors.affiliateCommissionRate,
                           ].filter(Boolean).length
-                        : 0) >
+                        : 0) +
+                      (platform === 'VINTED' ? [vintedErrors.visibilityServiceCost].filter(Boolean).length : 0) >
                     1
                       ? 's'
                       : ''

@@ -90,6 +90,21 @@ export function parseNonNegativeFixedFee(raw: string, fieldLabel: string): Valid
 }
 
 /**
+ * A required, strictly-positive money amount — used where the user has
+ * explicitly confirmed an actual cost was incurred (e.g. "yes, I paid for a
+ * Bump/Showcase"), so £0 would misrepresent that confirmation rather than
+ * mean "not applicable". Blank, malformed, zero and negative are all errors.
+ */
+export function parseRequiredPositiveAmount(raw: string, fieldLabel: string): ValidationResult<number> {
+  const trimmed = raw.trim();
+  if (trimmed === '') return { ok: false, error: `${fieldLabel} is required.` };
+  const n = toNumber(raw);
+  if (n === null || Number.isNaN(n)) return { ok: false, error: `${fieldLabel} must be a valid number.` };
+  if (n <= 0) return { ok: false, error: `${fieldLabel} must be greater than £0.` };
+  return { ok: true, value: n };
+}
+
+/**
  * TikTok Shop's affiliate/creator commission rate: blank or exactly 0 means
  * "no affiliate arrangement applies" (a legitimate, common value — never an
  * error). Any other value must fall within TikTok's currently documented

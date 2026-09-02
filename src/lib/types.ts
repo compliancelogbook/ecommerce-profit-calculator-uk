@@ -87,6 +87,16 @@ export interface CalculationResult {
   feeLines: FeeLine[];
   assumptions: string[];
   exclusions: string[];
+
+  /**
+   * Vinted-only: an indicative typical Buyer Protection range, paid BY THE
+   * BUYER — never a seller fee. Purely contextual information for display;
+   * deliberately NOT a fee line, and never included in any total above
+   * (totalCashFees, estimatedEconomicFees, estimatedProfit, marginPct,
+   * roiPct all exclude it by construction — see buildResult in
+   * src/lib/engines/shared.ts). Undefined for every other platform.
+   */
+  buyerProtectionRange?: { low: number; high: number; note: string } | null;
 }
 
 /** margin = profit / revenue; roi = profit / total cost. Never NaN/Infinity. */

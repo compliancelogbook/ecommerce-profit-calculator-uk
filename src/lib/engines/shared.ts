@@ -25,6 +25,9 @@ export interface ResultParts {
   assumptions: string[];
   exclusions: string[];
   confidence: ConfidenceLevel;
+
+  /** Vinted-only passthrough — see CalculationResult.buyerProtectionRange. Never contributes to any total below. */
+  buyerProtectionRange?: { low: number; high: number; note: string } | null;
 }
 
 /**
@@ -93,6 +96,7 @@ export function buildResult(parts: ResultParts): CalculationResult {
     feeLines: parts.feeLines,
     assumptions: parts.assumptions,
     exclusions: parts.exclusions,
+    buyerProtectionRange: parts.buyerProtectionRange ?? null,
   };
 }
 

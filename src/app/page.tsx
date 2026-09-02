@@ -7,7 +7,7 @@ import { OPTIONAL_HOME_ENTRY_COPY } from '../lib/uk-tax-guide/content';
 export const metadata: Metadata = homeMetadata({
   title: 'EasyFeezy — Marketplace Fee & Profit Calculator',
   description:
-    "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay, Amazon and TikTok Shop UK seller fee and profit calculators.",
+    "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay, Amazon, TikTok Shop UK and Vinted UK seller fee and profit calculators.",
 });
 
 export default function Home() {
@@ -31,7 +31,7 @@ export default function Home() {
             Know what you&apos;ll actually make before you sell.
           </p>
           <p className="text-[#888] text-base md:text-lg max-w-xl mx-auto leading-relaxed font-medium">
-            Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, Amazon, and TikTok Shop UK. Constantly updated with the latest changes.
+            Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, Amazon, TikTok Shop UK, and Vinted UK. Constantly updated with the latest changes.
           </p>
         </header>
 
@@ -45,6 +45,7 @@ export default function Home() {
           <Link href="/ebay-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">eBay Fee Calculator</Link>
           <Link href="/amazon-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Amazon Fee Calculator</Link>
           <Link href="/tiktok-shop-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">TikTok Shop Fee Calculator</Link>
+          <Link href="/vinted-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Vinted Fee Calculator</Link>
         </nav>
 
         <p className="mt-6 text-sm text-[#666]">

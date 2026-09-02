@@ -31,6 +31,7 @@ export const PLATFORM_VERIFIED_DATE: Record<Platform, { iso: string; display: st
   EBAY: { iso: '2026-08-16', display: '16 August 2026' },
   AMAZON: { iso: '2026-08-16', display: '16 August 2026' },
   TIKTOK: { iso: '2026-08-31', display: '31 August 2026' },
+  VINTED: { iso: '2026-09-02', display: '2 September 2026' },
 };
 
 /**

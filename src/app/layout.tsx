@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 const SITE_NAME = "EasyFeezy";
 const SITE_DESCRIPTION =
-  "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay and Amazon UK seller fee and profit calculators.";
+  "Marketplace fees made easy. Know what you'll actually make before you sell — accurate Shopify, Etsy, eBay, Amazon, TikTok Shop UK and Vinted UK seller fee and profit calculators.";
 
 // Every real route sets its own canonical/openGraph.url/title via
 // src/lib/seo.ts (pageMetadata / homeMetadata) — this root metadata is only
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     default: "EasyFeezy — Marketplace Fee & Profit Calculator",
   },
   description: SITE_DESCRIPTION,
-  keywords: "shopify fee calculator, ebay fee calculator, amazon fee calculator, etsy fee calculator, seller profit calculator, ecommerce margin calculator, shopify payments fees",
+  keywords: "shopify fee calculator, ebay fee calculator, amazon fee calculator, etsy fee calculator, vinted fee calculator, seller profit calculator, ecommerce margin calculator, shopify payments fees",
   openGraph: {
     siteName: SITE_NAME,
     type: "website",

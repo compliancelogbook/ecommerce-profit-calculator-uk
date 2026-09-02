@@ -30,10 +30,15 @@ Rules for using this document:
       service. Confirmed live on the public Companies House register as of
       2026-09-02 (address below matches exactly).
 - [x] Confirm that the purchased service covers the registered office,
-      director service address and PSC service address. Evidenced by the
-      successful registered-office update landing on the public register —
-      Companies House would not accept a registered-office filing the
-      service did not cover.
+      director service address and PSC service address. Operational
+      evidence only: 1st Formations submitted, and Companies House
+      accepted, the separate registered-office, director service-address
+      and PSC service-address changes associated with order 6102195.
+      Companies House itself does not validate the scope of a private
+      commercial-address subscription, so its acceptance of a filing is not
+      evidence the underlying subscription covers all three addresses —
+      nothing further about the subscription's commercial terms is inferred
+      here.
 - [x] Update the Companies House registered office, director service address
       and PSC service address. Verified directly against
       find-and-update.company-information.service.gov.uk/company/16932013
@@ -388,7 +393,16 @@ chosen.
 **Rationale:** broader coverage is valuable, but only once it can meet the
 same "never guess" bar as everything already shipped.
 
-- [ ] Vinted UK calculator.
+- [x] Vinted UK calculator. Implemented on `feature/vinted-uk`: £0 mandatory
+      seller platform fee (confirmed on Vinted's "How it works" page), an
+      indicative-only typical Buyer Protection range (3%-8% + £0.30-£0.80,
+      from Vinted's Buyer Protection help page and Price List — the
+      simplified "5% + £0.70" marketing figure is deliberately not
+      hard-coded; see /methodology for the documented conflict), an actual
+      user-entered Bump/Showcase cost, and Private/Pro seller routes with
+      Pro sellers seeing an explicit VAT/margin-scheme exclusion. 30 new
+      tests, full verification suite clean, existing marketplace engines
+      confirmed unchanged by a scoped diff.
 - [ ] US marketplace and reseller tax guidance as a separately researched
       phase.
 - [ ] Additional currencies only when each marketplace/country combination
@@ -444,3 +458,4 @@ quietly becoming an unplanned distraction later.
 | 2026-08-31 | Created this roadmap | Following identification of connected profitability workflows and professional exports as the long-term product direction | Done | — |
 | 2026-08-31 | Added clipboard export, bulk CSV analysis, seller-operations affiliate opportunities, and launch-distribution planning | External 24-hour product-plan review identified four worthwhile additions not fully captured in the original roadmap | Planned | `docs: expand EasyFeezy post-launch roadmap` |
 | 2026-09-02 | Checked off the remaining non-Vinted launch-gate items: registered-office activation/Companies House updates (verified against the live public register), company disclosure, the completed HMRC seller-guidance feature, Privacy Policy, Terms of Use, calculation disclaimer, verified contact method, analytics/cookie decision, structured data, and mobile/keyboard/accessibility testing and the final calculation/source audit | Completing "EasyFeezy V1 launch foundations" — every launch-gate item that is demonstrably complete and independently verifiable, deliberately excluding Vinted (still absent, separate task) and production deployment/domain items (not yet done) | Done | `release/easyfeezy-v1-foundations`, `feat: complete EasyFeezy V1 launch foundations` |
+| 2026-09-02 | Implemented and checked off the Vinted UK calculator; corrected the Companies House evidence wording above (removed an unsupported claim that Companies House validates commercial address-service scope, replaced with the specific order-6102195 filing-acceptance evidence only) | Completing "EasyFeezy V1 launch foundations — Vinted UK" from live-verified official Vinted sources, resolving a documented conflict between Vinted's simplified marketing-page Buyer Protection figure and its own more specific Price List/help page | Done | `feature/vinted-uk`, `feat: add Vinted UK fee calculator` |

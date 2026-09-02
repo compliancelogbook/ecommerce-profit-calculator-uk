@@ -42,7 +42,7 @@ export const TERMS_SECTIONS = [
   {
     heading: 'No guarantee of complete coverage',
     body: [
-      'EasyFeezy aims to model each supported marketplace’s published fee schedule accurately, but does not guarantee that every possible fee, promotion, tax treatment, seller circumstance or marketplace policy is included. Some marketplaces and calculation paths (for example, Vinted UK at the time of writing) are not yet covered at all.',
+      'EasyFeezy aims to model each supported marketplace’s published fee schedule accurately, but does not guarantee that every possible fee, promotion, tax treatment, seller circumstance or marketplace policy is included. Some marketplaces and calculation paths are not yet covered at all.',
     ],
   },
   {

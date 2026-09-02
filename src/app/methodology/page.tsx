@@ -5,6 +5,13 @@ import { ETSY_SOURCES } from '../../data/etsy.fees';
 import { EBAY_CATEGORIES, EBAY_SOURCE, EBAY_SOURCE_2026_08_04 } from '../../data/ebay.fees';
 import { AMAZON_CATEGORIES, AMAZON_SOURCE } from '../../data/amazon.fees';
 import { TIKTOK_CATEGORIES, TIKTOK_SOURCE } from '../../data/tiktok.fees';
+import {
+  HMRC_VAT_MARGIN_SCHEME_SOURCE,
+  VINTED_BUYER_PROTECTION_DETAILED_SOURCE,
+  VINTED_PRICELIST_SOURCE,
+  VINTED_PRO_GUIDE_SOURCE,
+  VINTED_ZERO_SELLING_FEE_SOURCE,
+} from '../../data/vinted.fees';
 import { UK_VAT_SOURCE } from '../../data/vat';
 import { pageMetadata } from '../../lib/seo';
 
@@ -44,11 +51,11 @@ export default function MethodologyPage() {
         <header className="space-y-4">
           <h1 className="text-3xl md:text-5xl font-semibold text-white tracking-tighter">Methodology &amp; Sources</h1>
           <p className="text-[#888] text-base leading-relaxed">
-            This calculator covers UK seller rules only (Shopify UK, Etsy UK, eBay UK Business Sellers, Amazon UK FBM, TikTok Shop UK),
-            current to 16 August 2026 for Shopify/Etsy/eBay/Amazon and 31 August 2026 for TikTok Shop. It is not tax or accounting advice —
-            always confirm VAT and fee treatment with your accountant, HMRC guidance, or the relevant platform invoice. Last independently
-            audited 16 August 2026 (launch audit, then a same-day follow-up audit — see corrections below); TikTok Shop UK support was added
-            31 August 2026.
+            This calculator covers UK seller rules only (Shopify UK, Etsy UK, eBay UK Business Sellers, Amazon UK FBM, TikTok Shop UK,
+            Vinted UK), current to 16 August 2026 for Shopify/Etsy/eBay/Amazon, 31 August 2026 for TikTok Shop, and 2 September 2026 for
+            Vinted. It is not tax or accounting advice — always confirm VAT and fee treatment with your accountant, HMRC guidance, or the
+            relevant platform invoice. Last independently audited 16 August 2026 (launch audit, then a same-day follow-up audit — see
+            corrections below); TikTok Shop UK support was added 31 August 2026; Vinted UK support was added 2 September 2026.
           </p>
         </header>
 
@@ -72,6 +79,19 @@ export default function MethodologyPage() {
               verifiedAt={TIKTOK_SOURCE.verifiedAt}
             />
             <SourceRow label="UK standard VAT rate (HMRC, statutory)" url={UK_VAT_SOURCE.url} verifiedAt={null} />
+            <SourceRow label="Vinted UK: How it works" url={VINTED_ZERO_SELLING_FEE_SOURCE.url} verifiedAt={VINTED_ZERO_SELLING_FEE_SOURCE.verifiedAt} />
+            <SourceRow
+              label="Vinted UK: Buyer Protection fee (help page)"
+              url={VINTED_BUYER_PROTECTION_DETAILED_SOURCE.url}
+              verifiedAt={VINTED_BUYER_PROTECTION_DETAILED_SOURCE.verifiedAt}
+            />
+            <SourceRow label="Vinted UK: Price List" url={VINTED_PRICELIST_SOURCE.url} verifiedAt={VINTED_PRICELIST_SOURCE.verifiedAt} />
+            <SourceRow label="Vinted UK: Pro guide" url={VINTED_PRO_GUIDE_SOURCE.url} verifiedAt={VINTED_PRO_GUIDE_SOURCE.verifiedAt} />
+            <SourceRow
+              label="HMRC: The Margin and Global Accounting Scheme (VAT Notice 718)"
+              url={HMRC_VAT_MARGIN_SCHEME_SOURCE.url}
+              verifiedAt={HMRC_VAT_MARGIN_SCHEME_SOURCE.verifiedAt}
+            />
           </ul>
         </section>
 
@@ -420,6 +440,107 @@ export default function MethodologyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-white">Vinted UK</h2>
+          <div className="text-sm text-[#888] leading-relaxed space-y-3">
+            <p>
+              <strong className="text-[#eaeaea]">Mandatory seller platform fee: £0.</strong> Confirmed on Vinted&apos;s own{' '}
+              <a href={VINTED_ZERO_SELLING_FEE_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea] break-all">
+                &quot;How it works&quot;
+              </a>{' '}
+              page: &quot;There are zero selling fees, so what you earn is yours to keep.&quot; Listing is also free. This is
+              shown as a real, sourced £0 fee line rather than silently omitted, so the &quot;zero fee&quot; claim itself is
+              auditable.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Buyer Protection: a documented conflict between two official Vinted pages,
+              resolved in favour of the more specific one.</strong> The same &quot;How it works&quot; page states a
+              simplified headline figure — &quot;5% of the item price + £0.70&quot; — for the mandatory fee Vinted charges
+              the BUYER at checkout. Vinted&apos;s dedicated{' '}
+              <a
+                href={VINTED_BUYER_PROTECTION_DETAILED_SOURCE.url}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                Buyer Protection help page
+              </a>{' '}
+              and{' '}
+              <a href={VINTED_PRICELIST_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea] break-all">
+                Price List
+              </a>{' '}
+              instead describe a variable calculation: the fee &quot;varies based on several factors, such as: item
+              characteristics, order value, order type (a single item versus a bundle)&quot; and &quot;typically includes a
+              percentage of the item&apos;s or bundle&apos;s price, as well as a fixed fee — usually 3% to 8% + £0.3 to
+              £0.8.&quot; Because the specific, dedicated pages describe the real mechanism and the marketing page is an
+              acknowledged simplification, this build does <strong className="text-[#eaeaea]">not</strong> hard-code &quot;5%
+              + £0.70&quot; as an exact fee (see{' '}
+              <code className="text-[#eaeaea]">VINTED_BUYER_PROTECTION_MARKETING_SOURCE</code> in{' '}
+              <code className="text-[#eaeaea]">src/data/vinted.fees.ts</code>, kept only as a documented, unused reference).
+              Instead, results show only the published &quot;usually 3%–8% + £0.30–£0.80&quot; range, clearly labelled as an
+              <strong className="text-[#eaeaea]"> indicative typical range — not an exact fee, quote or guarantee</strong>.
+              The real figure is calculated and shown to the buyer by Vinted itself at checkout; it also includes VAT and
+              excludes buyer-paid shipping and any optional Item Verification charge.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Buyer Protection is paid by the buyer and is never part of seller
+              maths.</strong> It is not deducted from seller revenue, not added to seller fees, not presented as a seller
+              charge, and not included in estimated profit, margin or ROI — it is surfaced separately, purely as context, on
+              a dedicated field (<code className="text-[#eaeaea]">buyerProtectionRange</code>) that the shared calculation
+              plumbing (<code className="text-[#eaeaea]">buildResult</code>) never sums into any total.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Bump and Showcase: an actual, user-entered cost — never invented.</strong>{' '}
+              Vinted&apos;s{' '}
+              <a href={VINTED_PRICELIST_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea] break-all">
+                Price List
+              </a>{' '}
+              confirms these optional, seller-paid visibility services have no universal fixed price — &quot;the applicable
+              fee...will be shown to you at checkout.&quot; This calculator asks whether you paid for one and, if so,
+              requires the actual VAT-inclusive amount — a blank, malformed or negative entry blocks the whole result with a
+              clear inline error rather than silently becoming £0. VAT recovery on this entered amount is not modelled.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Shipping is never assumed.</strong> With Vinted&apos;s normal prepaid-label
+              flow, the buyer purchases shipping directly through Vinted and the seller typically neither receives nor pays
+              anything for it — so both shipping fields default to £0 and are relabelled &quot;Shipping Amount You
+              Received&quot; and &quot;Shipping You Paid Yourself&quot; for Vinted. If a seller genuinely received or paid a
+              real amount, they enter it directly; nothing is calculated on their behalf.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Private vs Pro.</strong> Vinted&apos;s{' '}
+              <a href={VINTED_PRO_GUIDE_SOURCE.url} target="_blank" rel="noreferrer" className="underline hover:text-[#eaeaea] break-all">
+                Pro guide
+              </a>{' '}
+              confirms professional sellers must register as a Pro Seller, can list for free (the same £0 mandatory-fee
+              position as private sellers), but &quot;the listing price must include all related taxes, this includes the
+              VAT amount as well,&quot; and that &quot;a special VAT margin scheme could be applied for second-hand
+              items&quot; — see HMRC&apos;s own{' '}
+              <a
+                href={HMRC_VAT_MARGIN_SCHEME_SOURCE.url}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-[#eaeaea] break-all"
+              >
+                VAT Notice 718
+              </a>{' '}
+              guidance on that scheme. This calculator does not compute output VAT, the margin scheme, corporation tax,
+              income tax or personal tax for a Pro sale — a Pro result always carries an explicit exclusion explaining that
+              the correct VAT/tax treatment depends on the seller, the item, and whether a margin scheme applies, and is
+              downgraded to <code className="text-[#eaeaea]">EXCLUDES_VARIABLE_FEES</code> accordingly. The general shared
+              &quot;VAT Profile&quot; control (used by every other platform to model VAT on marketplace fees) is hidden for
+              Vinted entirely, rather than left visible with a misleading meaning — Vinted charges no fees for it to apply
+              VAT to in the first place.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Formulas used.</strong> Gross revenue = item selling price × quantity +
+              shipping amount actually received by the seller. Estimated profit deducts item cost × quantity, actual
+              seller-paid shipping, and any confirmed actual Bump/Showcase cost — never Buyer Protection. Verified 2 September
+              2026.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-white">Coverage &amp; what&apos;s not verified</h2>
           <div className="text-sm text-[#888] leading-relaxed space-y-3">
             <p>
@@ -467,7 +588,14 @@ export default function MethodologyPage() {
             </p>
             <p>
               V1 explicitly excludes: Amazon FBA, TikTok Shop FBT/ads/storage/return fee schedules (entered as an actual cost, not
-              calculated), accounts/saved calculations, marketplace API connections, and non-UK seller jurisdictions.
+              calculated), Vinted Pro output VAT/margin-scheme/tax treatment (entered nowhere — deliberately not calculated),
+              accounts/saved calculations, marketplace API connections, and non-UK seller jurisdictions.
+            </p>
+            <p>
+              <strong className="text-[#eaeaea]">Vinted UK: no mandatory seller fee to model beyond £0, and the Buyer Protection fee
+              is never an exact figure by design.</strong> The only genuine calculation uncertainty is an optional, user-confirmed
+              Bump/Showcase cost (never invented) — see the Vinted UK section above for the full sourcing and the resolved Buyer
+              Protection conflict.
             </p>
           </div>
         </section>

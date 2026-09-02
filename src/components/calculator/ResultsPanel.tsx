@@ -104,6 +104,27 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
         </div>
       </div>
 
+      {result.buyerProtectionRange && (
+        <div className="mt-8 pt-6 border-t border-[#111]">
+          <div className="border border-dashed border-[#333] rounded-lg p-4 bg-[#0a0a0a]">
+            <div className="text-[10px] text-[#fb923c] font-bold uppercase tracking-widest mb-2">
+              Buyer Protection — paid by the buyer, not a seller fee
+            </div>
+            <p className="text-xs text-[#a1a1a1] leading-relaxed">
+              Indicative typical range for this order:{' '}
+              <strong className="text-[#eaeaea] tabular-nums">
+                {formatGBP(result.buyerProtectionRange.low)}–{formatGBP(result.buyerProtectionRange.high)}
+              </strong>
+              . {result.buyerProtectionRange.note}
+            </p>
+            <p className="text-xs text-[#a1a1a1] leading-relaxed mt-2">
+              This amount is never deducted from your revenue and is not included in the fees, profit, margin or ROI shown
+              above.
+            </p>
+          </div>
+        </div>
+      )}
+
       {(result.assumptions.length > 0 || result.exclusions.length > 0) && (
         <div className="mt-8 pt-6 border-t border-[#111] space-y-4">
           {result.assumptions.length > 0 && (
