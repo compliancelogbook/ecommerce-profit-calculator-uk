@@ -116,21 +116,25 @@ describe('cross-route uniqueness', () => {
 });
 
 describe('RootLayout — scroll-behavior/navigation coordination', () => {
-  // Second root cause of the same reported defect: globals.css sets
-  // `scroll-behavior: smooth` on <html>. Next.js 16 stopped automatically
-  // overriding that during client-side navigation (earlier versions always
-  // forced an instant jump-to-top to keep route transitions conflict-free);
-  // as of 16 that coordination requires the data-scroll-behavior="smooth"
-  // opt-in attribute. Without it, a navigation triggered while the previous
-  // one's CSS-animated smooth scroll is still settling can leave the
-  // rendered route out of sync with the URL — exactly what was reported.
+  // globals.css sets `scroll-behavior: smooth` on <html>. Next.js 16 stopped
+  // automatically overriding that during client-side navigation (earlier
+  // versions always forced an instant jump-to-top to keep route transitions
+  // conflict-free); as of 16 that coordination requires the
+  // data-scroll-behavior="smooth" opt-in attribute, per Next's own migration
+  // notes. This attribute documents that intended navigation/scroll
+  // compatibility on its own merits — it was investigated as a possible
+  // contributor to a reported calculator route/content defect, but that
+  // causal link was never demonstrated (the defect was independently
+  // reproduced with the page fully settled and no scrolling in progress).
+  // The actual fix for that defect is architectural — see
+  // src/lib/platform-routes.ts's resolveDisplayedPlatform and its tests.
   //
   // layout.tsx can't be imported directly here: it pulls in next/font/google,
   // whose Geist()/Geist_Mono() calls are special build-time macros that only
   // resolve inside Next's own compiler, not a plain Vitest/Node import — so
   // this checks the source text directly instead. Deliberately ties both
   // halves together so removing either one without the other fails loudly,
-  // rather than silently reintroducing the bug.
+  // rather than silently breaking this documented Next.js compatibility.
   it('html carries data-scroll-behavior="smooth", matching globals.css\'s global smooth scroll-behavior', () => {
     const layoutSource = readFileSync(join(__dirname, '../layout.tsx'), 'utf8');
     expect(layoutSource).toMatch(/data-scroll-behavior=["']smooth["']/);

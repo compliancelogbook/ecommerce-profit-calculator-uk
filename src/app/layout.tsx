@@ -56,12 +56,19 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       // longer auto-overrides that during route navigation (earlier
       // versions silently forced an instant jump-to-top on every
       // navigation to keep transitions snappy and conflict-free) — as of
-      // 16, that coordination is opt-in via this attribute. Without it, a
-      // navigation triggered while the previous one's CSS-animated smooth
-      // scroll is still settling can leave the URL/rendered route out of
-      // sync with what's on screen (see the fix/calculator-route-state-sync
-      // branch history for the reported repro). See Next's own migration
-      // notes: node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md.
+      // 16, that coordination is opt-in via this attribute. This documents
+      // legitimate navigation/scroll compatibility per Next's own migration
+      // notes (node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md),
+      // matching this site's global smooth-scroll CSS with Next's router as
+      // the docs recommend. It was investigated as a possible contributor
+      // to a reported calculator route/content defect, but that causal link
+      // was never demonstrated — the defect was independently reproduced
+      // with the page fully settled and no scrolling in progress. The
+      // actual fix for that defect is architectural (CalculatorShell derives
+      // its displayed platform from usePathname() directly — see
+      // src/lib/platform-routes.ts's resolveDisplayedPlatform). This
+      // attribute is kept solely on its own merits as documented Next.js
+      // guidance, not as a fix for that bug.
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
