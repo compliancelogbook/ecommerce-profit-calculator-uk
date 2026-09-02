@@ -8,6 +8,7 @@ export default function SiteFooter() {
           <p className="font-medium text-[#888]">© {new Date().getFullYear()} EasyFeezy. All rights reserved.</p>
           <p className="text-xs leading-relaxed text-[#555]">
             EasyFeezy is a trading name of Compliance Logbook Ltd, registered in England and Wales. Company number 16932013.
+            Registered office: 71–75 Shelton Street, Covent Garden, London, WC2H 9JQ.
           </p>
         </div>
         <div className="flex items-center gap-6">

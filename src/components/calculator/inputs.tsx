@@ -5,8 +5,23 @@
 // Calculator.tsx). Kept here purely to avoid re-typing the same markup in
 // every platform panel — no new visual treatment is introduced.
 
-export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-sm font-medium text-[#888]">{children}</label>;
+/** Turns a field's visible label text into a stable, valid id fragment
+ *  (used to programmatically associate <label for> with its input, and to
+ *  build a matching error-message id) — labels are unique per panel, so
+ *  this is unique in practice without a separate id-generation scheme. */
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="text-sm font-medium text-[#888]">
+      {children}
+    </label>
+  );
 }
 
 /** Reuses the app's existing red-500 "something's wrong" color (already used for negative profit/margin) — no new color introduced. */
@@ -32,13 +47,15 @@ export function MoneyField({
   prefix?: string;
   error?: string;
 }) {
-  const errorId = error ? `${label.replace(/\s+/g, '-')}-error` : undefined;
+  const fieldId = `field-${slugify(label)}`;
+  const errorId = error ? `${fieldId}-error` : undefined;
   return (
     <div className="space-y-2">
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
       <div className="relative flex items-center">
         <span className="absolute left-3 text-[#888] font-medium">{prefix}</span>
         <input
+          id={fieldId}
           type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -67,11 +84,13 @@ export function NumberField({
   placeholder?: string;
   error?: string;
 }) {
-  const errorId = error ? `${label.replace(/\s+/g, '-')}-error` : undefined;
+  const fieldId = `field-${slugify(label)}`;
+  const errorId = error ? `${fieldId}-error` : undefined;
   return (
     <div className="space-y-2">
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
       <input
+        id={fieldId}
         type="number"
         value={value}
         placeholder={placeholder}
@@ -98,11 +117,13 @@ export function SelectField<T extends string>({
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
 }) {
+  const fieldId = `field-${slugify(label)}`;
   return (
     <div className="space-y-2">
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
       <div className="relative">
         <select
+          id={fieldId}
           value={value}
           onChange={(e) => onChange(e.target.value as T)}
           className="w-full bg-[#0a0a0a] border border-[#333] text-[#eaeaea] text-sm rounded-md py-2.5 px-3 appearance-none focus:outline-none focus:border-[#888] focus:ring-1 focus:ring-[#888] transition-all cursor-pointer"
