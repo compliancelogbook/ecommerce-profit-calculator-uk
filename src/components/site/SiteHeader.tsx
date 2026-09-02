@@ -7,7 +7,9 @@ const NAV_LINKS = [
   { href: '/amazon-fee-calculator', label: 'Amazon' },
   { href: '/tiktok-shop-fee-calculator', label: 'TikTok Shop' },
   { href: '/vinted-fee-calculator', label: 'Vinted' },
-  { href: '/methodology', label: 'Methodology' },
+  // Methodology is deliberately not repeated here — it's already reachable
+  // from the site footer on every page (same /methodology destination), and
+  // removing the duplicate keeps the primary nav shorter on mobile.
 ];
 
 const FOCUS_RING =

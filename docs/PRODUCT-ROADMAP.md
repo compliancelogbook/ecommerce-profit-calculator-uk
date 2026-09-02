@@ -70,9 +70,10 @@ Rules for using this document:
       `ResultsPanel` component every marketplace calculator uses — not
       duplicated per platform, and distinct from the UK Seller Tax Guide's
       own educational disclaimer.
-- [x] Add a verified contact method. `jade@compliancelogbook.com` published
-      as an accessible `mailto:` link in the footer and on the Privacy/Terms
-      pages.
+- [x] Add a verified contact method. `info@easyfeezy.com` published as an
+      accessible `mailto:` link in the footer and on the Privacy/Terms
+      pages (switched from the personal jade@compliancelogbook.com address
+      2026-09-02, post-launch, at the site owner's request).
 - [x] Decide on privacy-conscious analytics. Decision: launch without
       analytics, advertising or affiliate tracking. Recorded in the Privacy
       Policy and in the 2026-09-02 maintenance-log entry below.
@@ -461,3 +462,4 @@ quietly becoming an unplanned distraction later.
 | 2026-08-31 | Added clipboard export, bulk CSV analysis, seller-operations affiliate opportunities, and launch-distribution planning | External 24-hour product-plan review identified four worthwhile additions not fully captured in the original roadmap | Planned | `docs: expand EasyFeezy post-launch roadmap` |
 | 2026-09-02 | Checked off the remaining non-Vinted launch-gate items: registered-office activation/Companies House updates (verified against the live public register), company disclosure, the completed HMRC seller-guidance feature, Privacy Policy, Terms of Use, calculation disclaimer, verified contact method, analytics/cookie decision, structured data, and mobile/keyboard/accessibility testing and the final calculation/source audit | Completing "EasyFeezy V1 launch foundations" — every launch-gate item that is demonstrably complete and independently verifiable, deliberately excluding Vinted (still absent, separate task) and production deployment/domain items (not yet done) | Done | `release/easyfeezy-v1-foundations`, `feat: complete EasyFeezy V1 launch foundations` |
 | 2026-09-02 | Implemented and checked off the Vinted UK calculator; corrected the Companies House evidence wording above (removed an unsupported claim that Companies House validates commercial address-service scope, replaced with the specific order-6102195 filing-acceptance evidence only) | Completing "EasyFeezy V1 launch foundations — Vinted UK" from live-verified official Vinted sources, resolving a documented conflict between Vinted's simplified marketing-page Buyer Protection figure and its own more specific Price List/help page | Done | `feature/vinted-uk`, `feat: add Vinted UK fee calculator` |
+| 2026-09-02 | Post-launch polish, requested directly by the site owner after the first live Vercel deployment: switched the published contact email from the personal jade@compliancelogbook.com to info@easyfeezy.com everywhere it appears (footer, Privacy Policy, Terms, structured data, company.ts, tests); removed the duplicate Methodology link from the primary header nav (footer link to the same /methodology route retained); replaced the homepage tagline "Constantly updated with the latest changes" with "Checked against current official sources, with verification dates shown." | Now that easyfeezy.vercel.app is live, the owner wants the public contact point on the product's own domain rather than the operating company's, and asked for the redundant nav entry and a more accurate tagline to be cleaned up | Done | `main`, `chore: post-launch contact/nav/copy polish` |

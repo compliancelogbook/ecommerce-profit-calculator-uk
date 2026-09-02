@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { COMPANY } from '../../lib/legal/company';
 
 export default function SiteFooter() {
   return (
@@ -25,10 +26,10 @@ export default function SiteFooter() {
             Terms
           </Link>
           <a
-            href="mailto:jade@compliancelogbook.com"
+            href={`mailto:${COMPANY.contactEmail}`}
             className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
           >
-            jade@compliancelogbook.com
+            {COMPANY.contactEmail}
           </a>
           <Link
             href="/methodology"

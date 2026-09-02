@@ -16,7 +16,7 @@ describe('company details', () => {
     expect(COMPANY.registeredIn).toBe('England and Wales');
     expect(COMPANY.registeredOffice).toMatch(/Shelton Street/);
     expect(COMPANY.registeredOffice).toMatch(/WC2H 9JQ/);
-    expect(COMPANY.contactEmail).toBe('jade@compliancelogbook.com');
+    expect(COMPANY.contactEmail).toBe('info@easyfeezy.com');
   });
 
   it('never carries a telephone number or a residential-looking address field', () => {

@@ -31,7 +31,7 @@ export default function Home() {
             Know what you&apos;ll actually make before you sell.
           </p>
           <p className="text-[#888] text-base md:text-lg max-w-xl mx-auto leading-relaxed font-medium">
-            Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, Amazon, TikTok Shop UK, and Vinted UK. Constantly updated with the latest changes.
+            Accurately calculate your seller fees, margins, and net profit for Shopify, eBay, Etsy, Amazon, TikTok Shop UK, and Vinted UK. Checked against current official sources, with verification dates shown.
           </p>
         </header>
 
