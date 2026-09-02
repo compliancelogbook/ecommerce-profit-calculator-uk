@@ -340,11 +340,15 @@ export default function CalculatorShell({
             route change lands the user at the top of the new page for free. */}
         {buildTabDescriptors(platform, routeLocked).map((tab) => {
           // Active tab is distinguished by text treatment alone (white/bold
-          // vs muted grey) — no underline/glow indicator. aria-current
-          // (dedicated routes) still marks the active tab semantically for
-          // assistive tech regardless.
-          const tabClassName = `px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
-            tab.isActive ? 'text-white' : 'text-[#888] hover:text-[#eaeaea]'
+          // vs muted grey) — no underline/glow indicator. font-semibold (vs
+          // font-medium) is what actually supplies the "bold" half of that
+          // treatment; text-white alone does not change weight. aria-current
+          // (dedicated routes) marks the active tab semantically for
+          // assistive tech there; aria-pressed does the same for the
+          // homepage's local-state buttons, which have no navigation state
+          // for aria-current to describe.
+          const tabClassName = `px-5 py-3 text-sm transition-all whitespace-nowrap ${
+            tab.isActive ? 'text-white font-semibold' : 'text-[#888] font-medium hover:text-[#eaeaea]'
           }`;
 
           if (tab.href !== null) {
@@ -356,7 +360,13 @@ export default function CalculatorShell({
           }
 
           return (
-            <button key={tab.platform} type="button" onClick={() => setLocalPlatform(tab.platform)} className={tabClassName}>
+            <button
+              key={tab.platform}
+              type="button"
+              onClick={() => setLocalPlatform(tab.platform)}
+              aria-pressed={tab.isActive}
+              className={tabClassName}
+            >
               {tab.label}
             </button>
           );
