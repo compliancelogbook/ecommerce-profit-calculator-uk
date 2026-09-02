@@ -68,7 +68,7 @@ export default function CalculatorShell({
   // usePathname() is a live, reactive subscription to the browser's actual
   // current location — a <Link> click, router.push, AND back/forward
   // navigation all update it — so resolveDisplayedPlatform (see its own
-  // doc comment in platform-routes.ts, and calculator-tabs.test.ts) can
+  // doc comment in platform-routes.ts, and src/lib/__tests__/platform-routes.test.ts) can
   // make the URL the single source of truth for `platform` on a dedicated
   // route, never a prop snapshot or local state that a page-level
   // re-render could fail to keep in sync.
@@ -330,7 +330,7 @@ export default function CalculatorShell({
       <div className="flex px-4 pt-2 border-b border-[#333] overflow-x-auto scrollbar-hide">
         {/* buildTabDescriptors is the single source of truth for "does this
             tab navigate or just set local state" — see its own doc comment
-            and src/lib/__tests__/calculator-tabs.test.ts. This component
+            and src/lib/__tests__/platform-routes.test.ts. This component
             only turns that decision into markup: a real <Link> (with
             aria-current) when `href` is set, a state-setting <button>
             otherwise. On a dedicated route this is real navigation, so the
@@ -339,22 +339,18 @@ export default function CalculatorShell({
             calculator underneath it — and Next's default scroll-to-top on
             route change lands the user at the top of the new page for free. */}
         {buildTabDescriptors(platform, routeLocked).map((tab) => {
-          const tabClassName = `px-5 py-3 text-sm font-medium transition-all relative whitespace-nowrap ${
+          // Active tab is distinguished by text treatment alone (white/bold
+          // vs muted grey) — no underline/glow indicator. aria-current
+          // (dedicated routes) still marks the active tab semantically for
+          // assistive tech regardless.
+          const tabClassName = `px-5 py-3 text-sm font-medium transition-all whitespace-nowrap ${
             tab.isActive ? 'text-white' : 'text-[#888] hover:text-[#eaeaea]'
           }`;
-          const activeIndicator = tab.isActive && (
-            <motion.div
-              layoutId="activeTab"
-              className="absolute bottom-0 left-0 right-0 h-[2px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            />
-          );
 
           if (tab.href !== null) {
             return (
               <Link key={tab.platform} href={tab.href} aria-current={tab.ariaCurrent} className={tabClassName}>
                 {tab.label}
-                {activeIndicator}
               </Link>
             );
           }
@@ -362,7 +358,6 @@ export default function CalculatorShell({
           return (
             <button key={tab.platform} type="button" onClick={() => setLocalPlatform(tab.platform)} className={tabClassName}>
               {tab.label}
-              {activeIndicator}
             </button>
           );
         })}
