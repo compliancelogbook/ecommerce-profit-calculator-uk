@@ -4,7 +4,26 @@ import { COMPANY } from '../../lib/legal/company';
 export default function SiteFooter() {
   return (
     <footer className="w-full border-t border-[#222] bg-black">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4 px-4 py-8 text-sm text-[#666] md:flex-row md:items-start md:justify-between md:px-8">
+      {/* Purely decorative — the real, accessible "EasyFeezy" identity is the
+          logo link in SiteHeader and the "EasyFeezy" text in the disclosure
+          line below. aria-hidden + select-none/pointer-events-none keep this
+          out of the accessible tree and off-limits to focus/selection, so a
+          screen reader never announces the brand twice. Sized with clamp()
+          so it scales with viewport width but never blows past a sane
+          ceiling on very wide screens; the fixed-height, overflow-hidden
+          wrapper is what "crops" it top/bottom/sides like the reference. */}
+      <div
+        aria-hidden="true"
+        className="relative h-20 w-full select-none overflow-hidden pointer-events-none sm:h-28 md:h-40 lg:h-52"
+      >
+        <span
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-bold leading-none tracking-tighter text-[#131313]"
+          style={{ fontSize: 'clamp(4.5rem, 20vw, 18rem)' }}
+        >
+          EasyFeezy
+        </span>
+      </div>
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4 border-t border-[#222] px-4 py-8 text-sm text-[#666] md:flex-row md:items-start md:justify-between md:px-8">
         <div className="max-w-md space-y-1 text-center md:text-left">
           <p className="font-medium text-[#888]">© {new Date().getFullYear()} EasyFeezy. All rights reserved.</p>
           <p className="text-xs leading-relaxed text-[#555]">
