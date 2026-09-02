@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
+import { buildOrganizationJsonLd } from "../lib/legal/structured-data";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -54,6 +55,11 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black">
+        {/* Static, non-user-derived JSON built by buildOrganizationJsonLd — no HTML/script injection surface. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationJsonLd()) }}
+        />
         <SiteHeader />
         {children}
         <SiteFooter />

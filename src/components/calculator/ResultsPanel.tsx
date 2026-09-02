@@ -1,5 +1,6 @@
 "use client";
 
+import { CALCULATION_DISCLAIMER } from '../../lib/calculation-disclaimer';
 import { formatGBP, formatGBPRaw } from '../../lib/format';
 import type { CalculationResult, ConfidenceLevel } from '../../lib/types';
 import { verifiedBannerFor } from '../../lib/verification';
@@ -148,9 +149,11 @@ export default function ResultsPanel({ result, blockingError }: { result: Calcul
         )}
         <p className="text-[11px] text-[#555] leading-relaxed pt-2">
           &quot;Estimated Profit&quot; is a cash figure — total cash fees actually paid, before any VAT recovery. &quot;Estimated economic
-          fees&quot; above nets off potentially reclaimable VAT instead. This is a fee/profit estimate, not tax or accounting advice. Confirm
-          VAT and fee treatment with your accountant, HMRC guidance, or the relevant platform invoice. See{' '}
+          fees&quot; above nets off potentially reclaimable VAT instead. See{' '}
           <a href="/methodology" className="underline hover:text-[#888]">methodology</a>.
+        </p>
+        <p role="note" className="text-xs text-[#a1a1a1] leading-relaxed pt-2 border-t border-[#111] mt-2">
+          {CALCULATION_DISCLAIMER}
         </p>
       </div>
     </div>

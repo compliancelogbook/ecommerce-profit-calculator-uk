@@ -11,18 +11,36 @@ export default function SiteFooter() {
             Registered office: 71–75 Shelton Street, Covent Garden, London, WC2H 9JQ.
           </p>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           <Link
-            href="/uk-online-selling-tax-guide"
+            href="/privacy"
             className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
           >
-            UK Seller Tax Guide
+            Privacy
           </Link>
+          <Link
+            href="/terms"
+            className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+          >
+            Terms
+          </Link>
+          <a
+            href="mailto:jade@compliancelogbook.com"
+            className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+          >
+            jade@compliancelogbook.com
+          </a>
           <Link
             href="/methodology"
             className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
           >
             Methodology
+          </Link>
+          <Link
+            href="/uk-online-selling-tax-guide"
+            className="hover:text-[#eaeaea] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#888] focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
+          >
+            UK Seller Tax Guide
           </Link>
         </div>
       </div>

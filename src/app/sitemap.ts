@@ -11,6 +11,8 @@ const ROUTES: { path: string; priority: number; changeFrequency: 'weekly' | 'mon
   { path: '/tiktok-shop-fee-calculator', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/uk-online-selling-tax-guide', priority: 0.6, changeFrequency: 'monthly' },
   { path: '/methodology', priority: 0.5, changeFrequency: 'monthly' },
+  { path: '/privacy', priority: 0.3, changeFrequency: 'monthly' },
+  { path: '/terms', priority: 0.3, changeFrequency: 'monthly' },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

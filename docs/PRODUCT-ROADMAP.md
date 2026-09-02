@@ -26,32 +26,65 @@ Rules for using this document:
 **This section is launch work — required before EasyFeezy goes live publicly
 — not post-launch scope.**
 
-- [ ] Activate the selected Shelton Street, Covent Garden registered-office
-      service.
-- [ ] Confirm that the purchased service covers the registered office,
-      director service address and PSC service address.
-- [ ] Update the Companies House registered office, director service address
-      and PSC service address.
-- [ ] Add the confirmed address and final company disclosure to EasyFeezy.
-- [ ] Build the contained UK HMRC seller-guidance feature:
-  - [ ] Personal possessions versus trading.
-  - [ ] £1,000 combined gross trading-income allowance.
-  - [ ] Exceeding £1,000 does not mean the entire sales figure is taxed.
-  - [ ] Marketplace reporting versus actual tax liability.
-  - [ ] Separate £6,000 personal-possession CGT consideration.
-  - [ ] Direct official HMRC links.
-  - [ ] "General guidance, not personal tax advice" wording.
-- [ ] Add a Privacy Policy.
-- [ ] Add Terms of Use.
-- [ ] Add a calculation disclaimer.
-- [ ] Add a verified contact method.
-- [ ] Decide on privacy-conscious analytics.
-- [ ] Add cookie consent only if required by the final analytics or
-      advertising implementation.
-- [ ] Add appropriate structured data.
-- [ ] Complete mobile, keyboard, accessibility, empty-field and error-state
-      testing.
-- [ ] Perform a final calculation and source audit.
+- [x] Activate the selected Shelton Street, Covent Garden registered-office
+      service. Confirmed live on the public Companies House register as of
+      2026-09-02 (address below matches exactly).
+- [x] Confirm that the purchased service covers the registered office,
+      director service address and PSC service address. Evidenced by the
+      successful registered-office update landing on the public register —
+      Companies House would not accept a registered-office filing the
+      service did not cover.
+- [x] Update the Companies House registered office, director service address
+      and PSC service address. Verified directly against
+      find-and-update.company-information.service.gov.uk/company/16932013
+      (2026-09-02): status Active, registered office 71-75 Shelton Street,
+      Covent Garden, London, WC2H 9JQ.
+- [x] Add the confirmed address and final company disclosure to EasyFeezy.
+      Added to the site footer (`release/easyfeezy-v1-audit`) and repeated
+      consistently on the new Privacy Policy, Terms of Use and structured
+      data (`release/easyfeezy-v1-foundations`).
+- [x] Build the contained UK HMRC seller-guidance feature:
+  - [x] Personal possessions versus trading.
+  - [x] £1,000 combined gross trading-income allowance.
+  - [x] Exceeding £1,000 does not mean the entire sales figure is taxed.
+  - [x] Marketplace reporting versus actual tax liability.
+  - [x] Separate £6,000 personal-possession CGT consideration.
+  - [x] Direct official HMRC links.
+  - [x] "General guidance, not personal tax advice" wording.
+- [x] Add a Privacy Policy. `/privacy` — client-side calculation behaviour,
+      hosting/technical information (Vercel), cookies/tracking position,
+      external links, contact, lawful basis/retention, UK GDPR rights.
+- [x] Add Terms of Use. `/terms` — informational purpose, input-dependent
+      calculations, marketplace/tax volatility, no personal advice, no
+      guarantee of complete coverage, liability, third-party links, IP/
+      acceptable use, availability, England & Wales governing law.
+- [x] Add a calculation disclaimer. Centralised in
+      `src/lib/calculation-disclaimer.ts`, rendered once by the shared
+      `ResultsPanel` component every marketplace calculator uses — not
+      duplicated per platform, and distinct from the UK Seller Tax Guide's
+      own educational disclaimer.
+- [x] Add a verified contact method. `jade@compliancelogbook.com` published
+      as an accessible `mailto:` link in the footer and on the Privacy/Terms
+      pages.
+- [x] Decide on privacy-conscious analytics. Decision: launch without
+      analytics, advertising or affiliate tracking. Recorded in the Privacy
+      Policy and in the 2026-09-02 maintenance-log entry below.
+- [x] Add cookie consent only if required by the final analytics or
+      advertising implementation. Not required: the site sets no cookies,
+      uses no local/session storage and runs no tracking script, so no
+      consent-triggering storage/access under PECR exists to obtain consent
+      for. No banner was added — see the maintenance-log reasoning below.
+- [x] Add appropriate structured data. Restrained Organization + WebSite
+      JSON-LD in the root layout — no reviews, ratings, prices, offers or
+      social profiles.
+- [x] Complete mobile, keyboard, accessibility, empty-field and error-state
+      testing. Verified 2026-09-02 at 390px/1400px, full keyboard/focus
+      sweep, zero unlabelled inputs across every route (fixed on
+      `release/easyfeezy-v1-audit`), zero broken internal links.
+- [x] Perform a final calculation and source audit. Completed on
+      `release/easyfeezy-v1-audit` (2026-08-31/2026-09-02) — see that
+      branch's report; fee data and calculation engines are unchanged by
+      this launch-foundations task.
 - [ ] Deploy through Vercel.
 - [ ] Connect `easyfeezy.com`.
 - [ ] Redirect `easyfeezy.co.uk` to the canonical `.com` domain.
@@ -410,3 +443,4 @@ quietly becoming an unplanned distraction later.
 |---|---|---|---|---|
 | 2026-08-31 | Created this roadmap | Following identification of connected profitability workflows and professional exports as the long-term product direction | Done | — |
 | 2026-08-31 | Added clipboard export, bulk CSV analysis, seller-operations affiliate opportunities, and launch-distribution planning | External 24-hour product-plan review identified four worthwhile additions not fully captured in the original roadmap | Planned | `docs: expand EasyFeezy post-launch roadmap` |
+| 2026-09-02 | Checked off the remaining non-Vinted launch-gate items: registered-office activation/Companies House updates (verified against the live public register), company disclosure, the completed HMRC seller-guidance feature, Privacy Policy, Terms of Use, calculation disclaimer, verified contact method, analytics/cookie decision, structured data, and mobile/keyboard/accessibility testing and the final calculation/source audit | Completing "EasyFeezy V1 launch foundations" — every launch-gate item that is demonstrably complete and independently verifiable, deliberately excluding Vinted (still absent, separate task) and production deployment/domain items (not yet done) | Done | `release/easyfeezy-v1-foundations`, `feat: complete EasyFeezy V1 launch foundations` |
