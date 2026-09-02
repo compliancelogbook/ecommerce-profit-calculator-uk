@@ -52,6 +52,17 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html
       lang="en"
+      // globals.css sets `scroll-behavior: smooth` globally. Next.js 16 no
+      // longer auto-overrides that during route navigation (earlier
+      // versions silently forced an instant jump-to-top on every
+      // navigation to keep transitions snappy and conflict-free) — as of
+      // 16, that coordination is opt-in via this attribute. Without it, a
+      // navigation triggered while the previous one's CSS-animated smooth
+      // scroll is still settling can leave the URL/rendered route out of
+      // sync with what's on screen (see the fix/calculator-route-state-sync
+      // branch history for the reported repro). See Next's own migration
+      // notes: node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md.
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black">

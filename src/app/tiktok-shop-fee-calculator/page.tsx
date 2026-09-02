@@ -21,7 +21,8 @@ export default function TikTokShopFeeCalculatorPage() {
             customer-paid shipping formula, and optional affiliate commission.
           </p>
         </header>
-        <CalculatorShell defaultPlatform="TIKTOK" routeLocked />
+        {/* key forces a full remount on route change — see amazon-fee-calculator/page.tsx for why. */}
+        <CalculatorShell key="TIKTOK" defaultPlatform="TIKTOK" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">

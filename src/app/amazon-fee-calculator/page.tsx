@@ -22,7 +22,12 @@ export default function AmazonFeeCalculatorPage() {
           </p>
           <p className="text-[#fb923c] text-sm font-medium">Amazon FBA fulfilment, storage and related charges are not included.</p>
         </header>
-        <CalculatorShell defaultPlatform="AMAZON" routeLocked />
+        {/* key forces a full remount (and therefore a fresh internal
+            `platform` state) whenever this route's own platform differs
+            from whatever CalculatorShell instance React might otherwise be
+            tempted to reuse across a route change — defense in depth
+            alongside the layout-level scroll-behavior fix. */}
+        <CalculatorShell key="AMAZON" defaultPlatform="AMAZON" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">

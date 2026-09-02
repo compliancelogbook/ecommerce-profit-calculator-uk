@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
 import Home, { metadata as homeMetadata } from '../page';
@@ -71,6 +73,19 @@ describe.each(DEDICATED_PAGES)('$platform dedicated route', ({ platform, Page, m
     expect(shells[0].props.defaultPlatform).toBe(platform);
   });
 
+  it('CalculatorShell carries a key matching this route\'s own platform, forcing a full remount on route change', () => {
+    // A regression test for the reported "second in-calculator tab click
+    // updates the panel/active-tab but not the H1/URL" defect: without a
+    // key tied to the route's own identity, React can in principle reuse a
+    // CalculatorShell instance across two structurally-identical dedicated
+    // pages, letting its internal `platform` state drift out of step with
+    // the surrounding page's own (always-fresh) H1/metadata. The key
+    // guarantees a fresh mount — and therefore a fresh `useState(defaultPlatform)`
+    // — every time the route's platform changes.
+    const shells = findAll(tree, CalculatorShell);
+    expect(shells[0].key).toBe(platform);
+  });
+
   it('renders the shared MarketplaceCalculatorLinks nav', () => {
     expect(findFirst(tree, MarketplaceCalculatorLinks)).toBeDefined();
   });
@@ -110,5 +125,30 @@ describe('cross-route uniqueness', () => {
     for (const PageFn of pages) {
       expect(findFirst(PageFn(), MarketplaceCalculatorLinks)).toBeDefined();
     }
+  });
+});
+
+describe('RootLayout — scroll-behavior/navigation coordination', () => {
+  // Second root cause of the same reported defect: globals.css sets
+  // `scroll-behavior: smooth` on <html>. Next.js 16 stopped automatically
+  // overriding that during client-side navigation (earlier versions always
+  // forced an instant jump-to-top to keep route transitions conflict-free);
+  // as of 16 that coordination requires the data-scroll-behavior="smooth"
+  // opt-in attribute. Without it, a navigation triggered while the previous
+  // one's CSS-animated smooth scroll is still settling can leave the
+  // rendered route out of sync with the URL — exactly what was reported.
+  //
+  // layout.tsx can't be imported directly here: it pulls in next/font/google,
+  // whose Geist()/Geist_Mono() calls are special build-time macros that only
+  // resolve inside Next's own compiler, not a plain Vitest/Node import — so
+  // this checks the source text directly instead. Deliberately ties both
+  // halves together so removing either one without the other fails loudly,
+  // rather than silently reintroducing the bug.
+  it('html carries data-scroll-behavior="smooth", matching globals.css\'s global smooth scroll-behavior', () => {
+    const layoutSource = readFileSync(join(__dirname, '../layout.tsx'), 'utf8');
+    expect(layoutSource).toMatch(/data-scroll-behavior=["']smooth["']/);
+
+    const globalsCss = readFileSync(join(__dirname, '../globals.css'), 'utf8');
+    expect(globalsCss).toMatch(/scroll-behavior:\s*smooth/);
   });
 });

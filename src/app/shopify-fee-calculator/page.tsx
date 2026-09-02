@@ -21,7 +21,8 @@ export default function ShopifyFeeCalculatorPage() {
             international/Amex card surcharge and per-order subscription allocation.
           </p>
         </header>
-        <CalculatorShell defaultPlatform="SHOPIFY" routeLocked />
+        {/* key forces a full remount on route change — see amazon-fee-calculator/page.tsx for why. */}
+        <CalculatorShell key="SHOPIFY" defaultPlatform="SHOPIFY" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">
