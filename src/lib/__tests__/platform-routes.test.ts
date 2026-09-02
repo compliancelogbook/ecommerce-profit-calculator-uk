@@ -4,6 +4,7 @@ import {
   PLATFORM_LIST,
   PLATFORM_ROUTES,
   platformForPath,
+  resolveDisplayedPlatform,
   type Platform,
 } from '../platform-routes';
 
@@ -96,5 +97,77 @@ describe('buildTabDescriptors — the core route/state-sync decision', () => {
         expect(tab.label).toBe(PLATFORM_ROUTES[tab.platform].tabLabel);
       }
     }
+  });
+});
+
+describe('resolveDisplayedPlatform — the URL is the single source of truth on a dedicated route', () => {
+  it("reproduces the precise Etsy → inner eBay defect and proves it's fixed: pathname wins even when defaultPlatform is stale", () => {
+    // Exactly the reported scenario: CalculatorShell was first given
+    // defaultPlatform="ETSY" (how /etsy-fee-calculator renders it), but the
+    // browser's actual current URL has already moved to /ebay-fee-calculator
+    // — whether because a real navigation completed and this instance
+    // merely wasn't remounted, or any other reason. The displayed platform
+    // must follow the URL, never the stale prop.
+    const displayed = resolveDisplayedPlatform({
+      routeLocked: true,
+      pathname: '/ebay-fee-calculator',
+      defaultPlatform: 'ETSY',
+      localPlatform: 'ETSY',
+    });
+    expect(displayed).toBe('EBAY');
+  });
+
+  it('agrees with the route for all 30 same-page and cross-page combinations, whatever defaultPlatform claims', () => {
+    for (const routePlatform of PLATFORM_LIST) {
+      for (const staleDefault of PLATFORM_LIST) {
+        const displayed = resolveDisplayedPlatform({
+          routeLocked: true,
+          pathname: PLATFORM_ROUTES[routePlatform].path,
+          defaultPlatform: staleDefault,
+          localPlatform: staleDefault,
+        });
+        expect(displayed).toBe(routePlatform); // the URL always wins, regardless of staleDefault
+      }
+    }
+  });
+
+  it('falls back to defaultPlatform only when the pathname does not resolve to any known platform route', () => {
+    expect(
+      resolveDisplayedPlatform({ routeLocked: true, pathname: null, defaultPlatform: 'AMAZON', localPlatform: 'SHOPIFY' })
+    ).toBe('AMAZON');
+    expect(
+      resolveDisplayedPlatform({ routeLocked: true, pathname: '/', defaultPlatform: 'AMAZON', localPlatform: 'SHOPIFY' })
+    ).toBe('AMAZON');
+  });
+
+  it('on the homepage (routeLocked=false), the URL is ignored entirely — only local state decides, exactly preserving free comparison switching', () => {
+    for (const local of PLATFORM_LIST) {
+      const displayed = resolveDisplayedPlatform({
+        routeLocked: false,
+        pathname: '/amazon-fee-calculator', // deliberately mismatched, to prove it's ignored
+        defaultPlatform: 'SHOPIFY',
+        localPlatform: local,
+      });
+      expect(displayed).toBe(local);
+    }
+  });
+
+  it('back/forward navigation is covered for free: resolveDisplayedPlatform only ever reads the CURRENT pathname, however it got there', () => {
+    // popstate (back/forward) updates the same pathname a <Link> click or
+    // router.push does — there is no separate code path to keep in sync.
+    let displayed = resolveDisplayedPlatform({
+      routeLocked: true,
+      pathname: '/shopify-fee-calculator',
+      defaultPlatform: 'SHOPIFY',
+      localPlatform: 'SHOPIFY',
+    });
+    expect(displayed).toBe('SHOPIFY');
+    displayed = resolveDisplayedPlatform({
+      routeLocked: true,
+      pathname: '/tiktok-shop-fee-calculator', // simulates a back-button navigation
+      defaultPlatform: 'SHOPIFY',
+      localPlatform: 'SHOPIFY',
+    });
+    expect(displayed).toBe('TIKTOK');
   });
 });

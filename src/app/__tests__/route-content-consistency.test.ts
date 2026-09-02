@@ -73,19 +73,6 @@ describe.each(DEDICATED_PAGES)('$platform dedicated route', ({ platform, Page, m
     expect(shells[0].props.defaultPlatform).toBe(platform);
   });
 
-  it('CalculatorShell carries a key matching this route\'s own platform, forcing a full remount on route change', () => {
-    // A regression test for the reported "second in-calculator tab click
-    // updates the panel/active-tab but not the H1/URL" defect: without a
-    // key tied to the route's own identity, React can in principle reuse a
-    // CalculatorShell instance across two structurally-identical dedicated
-    // pages, letting its internal `platform` state drift out of step with
-    // the surrounding page's own (always-fresh) H1/metadata. The key
-    // guarantees a fresh mount — and therefore a fresh `useState(defaultPlatform)`
-    // — every time the route's platform changes.
-    const shells = findAll(tree, CalculatorShell);
-    expect(shells[0].key).toBe(platform);
-  });
-
   it('renders the shared MarketplaceCalculatorLinks nav', () => {
     expect(findFirst(tree, MarketplaceCalculatorLinks)).toBeDefined();
   });

@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
-import { buildTabDescriptors, type Platform } from '../../lib/platform-routes';
+import { buildTabDescriptors, resolveDisplayedPlatform, type Platform } from '../../lib/platform-routes';
 import { EBAY_CATEGORIES } from '../../data/ebay.fees';
 import { TIKTOK_CATEGORIES } from '../../data/tiktok.fees';
 import type { VatProfile } from '../../data/vat';
@@ -64,7 +65,16 @@ export default function CalculatorShell({
    */
   routeLocked?: boolean;
 }) {
-  const [platform, setPlatform] = useState<Platform>(defaultPlatform);
+  // usePathname() is a live, reactive subscription to the browser's actual
+  // current location — a <Link> click, router.push, AND back/forward
+  // navigation all update it — so resolveDisplayedPlatform (see its own
+  // doc comment in platform-routes.ts, and calculator-tabs.test.ts) can
+  // make the URL the single source of truth for `platform` on a dedicated
+  // route, never a prop snapshot or local state that a page-level
+  // re-render could fail to keep in sync.
+  const pathname = usePathname();
+  const [localPlatform, setLocalPlatform] = useState<Platform>(defaultPlatform);
+  const platform = resolveDisplayedPlatform({ routeLocked, pathname, defaultPlatform, localPlatform });
 
   // Shared transaction inputs
   const [soldPrice, setSoldPrice] = useState('30');
@@ -350,7 +360,7 @@ export default function CalculatorShell({
           }
 
           return (
-            <button key={tab.platform} type="button" onClick={() => setPlatform(tab.platform)} className={tabClassName}>
+            <button key={tab.platform} type="button" onClick={() => setLocalPlatform(tab.platform)} className={tabClassName}>
               {tab.label}
               {activeIndicator}
             </button>

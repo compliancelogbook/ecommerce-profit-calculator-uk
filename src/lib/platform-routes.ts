@@ -41,6 +41,33 @@ export function platformForPath(pathname: string): Platform | null {
   return entry ?? null;
 }
 
+/**
+ * The pure decision behind which platform CalculatorShell actually
+ * displays. On a dedicated route (`routeLocked`), the URL itself — read via
+ * `pathname`, which in the real component comes from Next's `usePathname()`
+ * — is the single source of truth, never a prop snapshot or local state
+ * that a page-level re-render could fail to keep in sync. This is what
+ * makes it structurally impossible for the calculator to show a platform
+ * the address bar disagrees with: even if `defaultPlatform` is stale (e.g.
+ * still "ETSY" from how this component instance was first mounted) while
+ * the browser has already navigated to /ebay-fee-calculator, the pathname
+ * wins. `defaultPlatform` is used only as a fallback for the moment the
+ * pathname doesn't resolve to a known platform route at all. On the
+ * homepage (`!routeLocked`), the URL is ignored entirely — switching is
+ * local-state-only there, by design, so free comparison never touches the
+ * address bar.
+ */
+export function resolveDisplayedPlatform(params: {
+  routeLocked: boolean;
+  pathname: string | null;
+  defaultPlatform: Platform;
+  localPlatform: Platform;
+}): Platform {
+  if (!params.routeLocked) return params.localPlatform;
+  const routePlatform = params.pathname ? platformForPath(params.pathname) : null;
+  return routePlatform ?? params.defaultPlatform;
+}
+
 export interface TabDescriptor {
   platform: Platform;
   label: string;
