@@ -61,6 +61,31 @@ describe('Vinted UK engine', () => {
     expect(line.verificationStatus).toBeUndefined();
   });
 
+  it('V04c: the Bump/Showcase entered amount is deducted exactly once, labelled VAT-inclusive, with no additional VAT added and no reclaimable VAT invented', () => {
+    const r = calculateVinted({ ...base, visibilityServiceCost: 2.4 });
+    const line = r.feeLines.find((f) => f.id === 'vinted-visibility-service')!;
+
+    // Deducted exactly once: the £2.40 appears as this one fee line, is the
+    // sole contributor to advertisingFee, and profit drops by exactly £2.40
+    // relative to the no-visibility-service baseline — never double-counted.
+    expect(line.amountExVat).toBe(2.4);
+    expect(r.advertisingFee).toBe(2.4);
+    const withoutService = calculateVinted(base);
+    expect(withoutService.estimatedProfit - r.estimatedProfit).toBeCloseTo(2.4, 6);
+
+    // Labelled VAT-inclusive: the entered cash amount already includes VAT.
+    expect(line.vatInclusive).toBe(true);
+
+    // No additional VAT is added on top of the VAT-inclusive amount entered.
+    expect(line.vatAmount).toBeUndefined();
+    expect(line.vatRate).toBeUndefined();
+    expect(r.vatOnFees).toBe(0);
+    expect(r.totalCashFees).toBe(2.4);
+
+    // No reclaimable VAT is invented for this line — VAT recovery stays unmodelled.
+    expect(r.potentiallyReclaimableVat).toBe(0);
+  });
+
   it('V05: an invalid (blank/malformed/negative) visibility cost throws at the engine boundary rather than becoming £0', () => {
     expect(() => calculateVinted({ ...base, visibilityServiceCost: -1 })).toThrow();
     expect(() => calculateVinted({ ...base, visibilityServiceCost: NaN })).toThrow();

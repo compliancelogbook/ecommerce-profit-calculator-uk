@@ -156,6 +156,37 @@ describe('Shared engine tests', () => {
     expect(r.confidence).toBe('EXCLUDES_VARIABLE_FEES');
   });
 
+  it('2026-09-02 Vinted correction audit: buildResult ignores buyerProtectionRange entirely at the shared-result boundary', () => {
+    // Direct test of buildResult itself (not calculateVinted) — proves the
+    // isolation holds at the shared plumbing level, not merely as an
+    // incidental property of one engine's current inputs.
+    const commonParts = {
+      grossRevenue: money(30),
+      cogs: money(10),
+      shippingCost: ZERO,
+      platformTransactionFee: ZERO,
+      advertisingFee: money(2.4),
+      feeLines: [],
+      assumptions: [],
+      exclusions: [],
+      confidence: 'EXACT_FOR_SELECTED_INPUTS' as const,
+    };
+
+    const withoutRange = buildResult({ ...commonParts, buyerProtectionRange: null });
+    const extremeRange = { low: 999_999, high: 9_999_999, note: 'deliberately extreme, for isolation testing only' };
+    const withExtremeRange = buildResult({ ...commonParts, buyerProtectionRange: extremeRange });
+
+    expect(withExtremeRange.totalCashFees).toBe(withoutRange.totalCashFees);
+    expect(withExtremeRange.estimatedEconomicFees).toBe(withoutRange.estimatedEconomicFees);
+    expect(withExtremeRange.estimatedProfit).toBe(withoutRange.estimatedProfit);
+    expect(withExtremeRange.marginPct).toBe(withoutRange.marginPct);
+    expect(withExtremeRange.roiPct).toBe(withoutRange.roiPct);
+
+    // The range is passed through as display-only metadata, never folded into feeLines.
+    expect(withExtremeRange.feeLines).toEqual([]);
+    expect(withExtremeRange.buyerProtectionRange).toEqual(extremeRange);
+  });
+
   it('2026-08-16 audit: an AUTOMATED_UNVERIFIED category (if one existed) would still surface a distinct assumption signal', () => {
     // No AUTOMATED_UNVERIFIED Amazon category is currently enabled (see amazon.test.ts), so this
     // exercises the engine's handling path directly via a manual-rate assumption instead —

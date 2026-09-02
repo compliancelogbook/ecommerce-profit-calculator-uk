@@ -70,6 +70,16 @@ describe('Vinted UK source integrity', () => {
     expect(HMRC_VAT_MARGIN_SCHEME_SOURCE.url).toMatch(/^https:\/\/www\.gov\.uk\//);
   });
 
+  it('cites GOV.UK\'s current live VAT margin schemes page, not the withdrawn VAT Notice 718 URL', () => {
+    expect(HMRC_VAT_MARGIN_SCHEME_SOURCE.url).toBe('https://www.gov.uk/vat-margin-schemes');
+    expect(HMRC_VAT_MARGIN_SCHEME_SOURCE.url).not.toMatch(/margin-and-global-accounting-scheme-vat-notice-718/);
+    expect(HMRC_VAT_MARGIN_SCHEME_SOURCE.notes).not.toMatch(/VAT Notice 718/);
+  });
+
+  it('was independently re-verified (not left with a null date) when the source was corrected', () => {
+    expect(HMRC_VAT_MARGIN_SCHEME_SOURCE.verifiedAt).toBe('2026-09-02');
+  });
+
   it('the permitted indicative Buyer Protection range matches the published 3%-8% + £0.30-£0.80 band exactly', () => {
     expect(VINTED_BUYER_PROTECTION_RANGE.lowPct).toBe(0.03);
     expect(VINTED_BUYER_PROTECTION_RANGE.lowFixed).toBe(0.3);

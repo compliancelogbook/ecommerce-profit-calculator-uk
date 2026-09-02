@@ -102,9 +102,17 @@ export const VINTED_PRO_GUIDE_SOURCE: SourceRef = {
 };
 
 /**
- * HMRC's own guidance on the second-hand goods VAT margin scheme Vinted's
- * Pro guide links out to — cited so the margin-scheme exclusion isn't a bare
- * assertion. Statutory, not a Vinted-published figure.
+ * HMRC's own current guidance on the second-hand goods VAT margin scheme
+ * Vinted's Pro guide links out to — cited so the margin-scheme exclusion
+ * isn't a bare assertion. Statutory, not a Vinted-published figure.
+ *
+ * Corrected 2026-09-02: this previously cited "VAT Notice 718" at
+ * /guidance/the-margin-and-global-accounting-scheme-vat-notice-718, which an
+ * independent audit found had been WITHDRAWN. Replaced with GOV.UK's
+ * current live guidance page, fetched and confirmed on 2026-09-02. The
+ * underlying fact this source supports — that EasyFeezy does not calculate
+ * Vinted Pro output VAT or margin-scheme treatment — is unchanged; only the
+ * citation was wrong, not the exclusion built on it.
  */
 export const HMRC_VAT_MARGIN_SCHEME_SOURCE: SourceRef = {
   sellerMarket: 'GB',
@@ -112,10 +120,11 @@ export const HMRC_VAT_MARGIN_SCHEME_SOURCE: SourceRef = {
   formula: 'Optional scheme: VAT accounted for on the margin (selling price minus purchase price), not the full selling price, for eligible second-hand goods',
   currency: 'GBP',
   effectiveDate: null,
-  url: 'https://www.gov.uk/guidance/the-margin-and-global-accounting-scheme-vat-notice-718',
-  verifiedAt: null,
+  url: 'https://www.gov.uk/vat-margin-schemes',
+  verifiedAt: '2026-09-02',
   verificationStatus: 'STATUTORY',
-  notes: 'HMRC VAT Notice 718 — statutory guidance, not a Vinted-published fee.',
+  notes:
+    'HMRC/GOV.UK current guidance on VAT margin schemes (confirmed live and not withdrawn on 2026-09-02): "VAT margin schemes tax the difference between what you paid for an item and what you sold it for, rather than the full selling price." Statutory guidance, not a Vinted-published fee.',
 };
 
 /** Mandatory Vinted seller platform (listing/transaction/selling) fee — always £0. */

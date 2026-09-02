@@ -88,7 +88,7 @@ export default function MethodologyPage() {
             <SourceRow label="Vinted UK: Price List" url={VINTED_PRICELIST_SOURCE.url} verifiedAt={VINTED_PRICELIST_SOURCE.verifiedAt} />
             <SourceRow label="Vinted UK: Pro guide" url={VINTED_PRO_GUIDE_SOURCE.url} verifiedAt={VINTED_PRO_GUIDE_SOURCE.verifiedAt} />
             <SourceRow
-              label="HMRC: The Margin and Global Accounting Scheme (VAT Notice 718)"
+              label="HMRC: VAT margin schemes"
               url={HMRC_VAT_MARGIN_SCHEME_SOURCE.url}
               verifiedAt={HMRC_VAT_MARGIN_SCHEME_SOURCE.verifiedAt}
             />
@@ -521,7 +521,7 @@ export default function MethodologyPage() {
                 rel="noreferrer"
                 className="underline hover:text-[#eaeaea] break-all"
               >
-                VAT Notice 718
+                VAT margin schemes
               </a>{' '}
               guidance on that scheme. This calculator does not compute output VAT, the margin scheme, corporation tax,
               income tax or personal tax for a Pro sale — a Pro result always carries an explicit exclusion explaining that

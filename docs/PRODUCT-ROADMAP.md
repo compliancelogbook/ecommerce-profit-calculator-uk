@@ -29,21 +29,23 @@ Rules for using this document:
 - [x] Activate the selected Shelton Street, Covent Garden registered-office
       service. Confirmed live on the public Companies House register as of
       2026-09-02 (address below matches exactly).
-- [x] Confirm that the purchased service covers the registered office,
-      director service address and PSC service address. Operational
-      evidence only: 1st Formations submitted, and Companies House
-      accepted, the separate registered-office, director service-address
-      and PSC service-address changes associated with order 6102195.
-      Companies House itself does not validate the scope of a private
-      commercial-address subscription, so its acceptance of a filing is not
-      evidence the underlying subscription covers all three addresses —
-      nothing further about the subscription's commercial terms is inferred
-      here.
 - [x] Update the Companies House registered office, director service address
-      and PSC service address. Verified directly against
+      and PSC service address. Operational evidence only: 1st Formations
+      submitted, and Companies House accepted, the separate registered-
+      office, director service-address and PSC service-address changes
+      associated with order 6102195 — verified directly against
       find-and-update.company-information.service.gov.uk/company/16932013
       (2026-09-02): status Active, registered office 71-75 Shelton Street,
       Covent Garden, London, WC2H 9JQ.
+- [ ] Confirm that the purchased commercial address-service subscription
+      itself (order 6102195) covers the registered office, director
+      service address and PSC service address. NOT established by the
+      item above: Companies House accepting a filing only shows the filing
+      was accepted — Companies House does not validate the scope of a
+      private commercial subscription, so its acceptance is not evidence
+      the subscription contractually covers all three addresses. Left
+      unchecked pending direct confirmation from the service provider
+      (e.g. the 1st Formations order/contract terms for order 6102195).
 - [x] Add the confirmed address and final company disclosure to EasyFeezy.
       Added to the site footer (`release/easyfeezy-v1-audit`) and repeated
       consistently on the new Privacy Policy, Terms of Use and structured

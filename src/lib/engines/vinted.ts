@@ -101,7 +101,7 @@ export function calculateVinted(input: VintedInput): CalculationResult {
         category: 'advertising',
         platform: 'VINTED',
         feeType: 'visibility_service',
-        formula: `User-confirmed actual amount paid (£${toRawNumber(visibilityServiceCost).toFixed(2)}) — Vinted publishes no universal fixed price for Bump/Showcase; the exact cost is shown at checkout`,
+        formula: `User-confirmed actual VAT-inclusive amount paid (£${toRawNumber(visibilityServiceCost).toFixed(2)}) — Vinted publishes no universal fixed price for Bump/Showcase; the exact cost is shown at checkout`,
         currency: 'GBP',
         // Deliberately no `source` here (unlike the £0 platform-fee line
         // above): this amount is a user-entered actual cost, not a verified
@@ -110,9 +110,22 @@ export function calculateVinted(input: VintedInput): CalculationResult {
         // it as independently confirmed — matching TikTok's "other actual
         // costs" line, which is unsourced for the same reason. See
         // VINTED_PRICELIST_SOURCE for the general (schedule-level) source.
+        //
+        // The user is explicitly asked for, and enters, the actual
+        // VAT-inclusive amount they paid (see VintedPanel's "actual,
+        // VAT-inclusive" field label) — so `amountExVat` (the cash figure
+        // stored on this line, despite the field's name) is already the
+        // full VAT-inclusive cost, not an ex-VAT figure needing VAT added
+        // on top. `vatInclusive: true` records that accurately (matching
+        // TikTok's commission-line pattern) and drives the ResultsPanel's
+        // "(VAT-inclusive)" badge. `vatUnconfirmed: true` is kept alongside
+        // it — VAT-inclusive tells us no further VAT should be ADDED, but
+        // we still don't know how much of this figure is reclaimable VAT
+        // (no VAT rate/split was supplied), so recovery stays unmodelled.
+        vatInclusive: true,
         vatUnconfirmed: true,
         notes:
-          'Treated as an actual cash cost, never recalculated from the item price. VAT recovery on this amount is not modelled — this build does not derive a reclaimable VAT figure without an official source establishing the precise VAT split and treatment for this specific charge.',
+          'Treated as an actual, already VAT-inclusive cash cost, never recalculated from the item price and never taxed again on top. VAT recovery on this amount is not modelled — this build does not derive a reclaimable VAT figure without an official source establishing the precise VAT split and treatment for this specific charge.',
       })
     );
     assumptions.push(
