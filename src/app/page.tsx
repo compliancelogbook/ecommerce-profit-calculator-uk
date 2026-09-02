@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../components/calculator/CalculatorShell';
 import Link from 'next/link';
+import MarketplaceCalculatorLinks from '../components/site/MarketplaceCalculatorLinks';
 import { homeMetadata } from '../lib/seo';
 import { OPTIONAL_HOME_ENTRY_COPY } from '../lib/uk-tax-guide/content';
 
@@ -39,15 +40,6 @@ export default function Home() {
           <CalculatorShell />
         </main>
 
-        <nav aria-label="Marketplace calculators" className="w-full mt-10 flex flex-wrap justify-center gap-3 text-sm">
-          <Link href="/shopify-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Shopify Fee Calculator</Link>
-          <Link href="/etsy-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Etsy Fee Calculator</Link>
-          <Link href="/ebay-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">eBay Fee Calculator</Link>
-          <Link href="/amazon-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Amazon Fee Calculator</Link>
-          <Link href="/tiktok-shop-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">TikTok Shop Fee Calculator</Link>
-          <Link href="/vinted-fee-calculator" className="px-3 py-1.5 rounded-full border border-[#333] text-[#888] hover:text-[#eaeaea] hover:border-[#666] transition-all">Vinted Fee Calculator</Link>
-        </nav>
-
         <p className="mt-6 text-sm text-[#666]">
           <Link
             href="/uk-online-selling-tax-guide"
@@ -56,6 +48,9 @@ export default function Home() {
             {OPTIONAL_HOME_ENTRY_COPY}
           </Link>
         </p>
+
+        {/* Immediately above the footer, matching every dedicated calculator route — see MarketplaceCalculatorLinks. */}
+        <MarketplaceCalculatorLinks />
       </div>
 
     </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
+import MarketplaceCalculatorLinks from '../../components/site/MarketplaceCalculatorLinks';
 import { pageMetadata } from '../../lib/seo';
 
 export const metadata: Metadata = pageMetadata({
@@ -20,7 +21,7 @@ export default function EbayFeeCalculatorPage() {
             Regulatory Operating Fee, international fees, and the Top Rated Premium Service discount.
           </p>
         </header>
-        <CalculatorShell defaultPlatform="EBAY" />
+        <CalculatorShell defaultPlatform="EBAY" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">
@@ -34,6 +35,7 @@ export default function EbayFeeCalculatorPage() {
             sourcing and coverage notes.
           </p>
         </section>
+        <MarketplaceCalculatorLinks />
       </div>
     </div>
   );

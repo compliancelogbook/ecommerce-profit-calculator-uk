@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UNSUPPORTED_CATEGORY_ID } from '../../data/types';
+import { buildTabDescriptors, type Platform } from '../../lib/platform-routes';
 import { EBAY_CATEGORIES } from '../../data/ebay.fees';
 import { TIKTOK_CATEGORIES } from '../../data/tiktok.fees';
 import type { VatProfile } from '../../data/vat';
@@ -32,16 +34,11 @@ import TikTokPanel, { defaultCategoryIdForGroup, TIKTOK_OTHER_GROUP, type TikTok
 import VintedPanel, { type VintedPanelState } from './VintedPanel';
 import ResultsPanel from './ResultsPanel';
 
-export type Platform = 'SHOPIFY' | 'ETSY' | 'EBAY' | 'AMAZON' | 'TIKTOK' | 'VINTED';
-
-const PLATFORM_LABEL: Record<Platform, string> = {
-  SHOPIFY: 'Shopify',
-  ETSY: 'Etsy',
-  EBAY: 'eBay',
-  AMAZON: 'Amazon',
-  TIKTOK: 'TikTok Shop',
-  VINTED: 'Vinted',
-};
+// Platform itself now lives in src/lib/platform-routes.ts (the shared
+// route registry) — re-exported here since nothing outside this file
+// currently imports it, but keeping the name stable at this path costs
+// nothing and avoids a silent breaking change for any future import.
+export type { Platform };
 
 function err<T>(r: ValidationResult<T>): string | undefined {
   return r.ok ? undefined : r.error;
@@ -50,7 +47,23 @@ function val<T>(r: ValidationResult<T>, fallback: T): T {
   return r.ok ? r.value : fallback;
 }
 
-export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defaultPlatform?: Platform }) {
+export default function CalculatorShell({
+  defaultPlatform = 'SHOPIFY',
+  routeLocked = false,
+}: {
+  defaultPlatform?: Platform;
+  /**
+   * True on every dedicated /*-fee-calculator route, false on the homepage.
+   * When true, the tab switcher renders real <Link>s to each platform's own
+   * route (with aria-current="page" on the active one) instead of buttons
+   * that reassign local state — so the URL, metadata, H1, intro and
+   * "What's included" section can never drift out of sync with whichever
+   * calculator is actually showing. The homepage keeps the original
+   * local-state switcher so users can compare platforms without navigating
+   * away.
+   */
+  routeLocked?: boolean;
+}) {
   const [platform, setPlatform] = useState<Platform>(defaultPlatform);
 
   // Shared transaction inputs
@@ -305,24 +318,44 @@ export default function CalculatorShell({ defaultPlatform = 'SHOPIFY' }: { defau
   return (
     <div className="w-full bg-[#000000] rounded-xl border border-[#333] p-0 md:p-0 relative overflow-hidden font-sans">
       <div className="flex px-4 pt-2 border-b border-[#333] overflow-x-auto scrollbar-hide">
-        {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPlatform(p)}
-            className={`px-5 py-3 text-sm font-medium transition-all relative whitespace-nowrap ${
-              platform === p ? 'text-white' : 'text-[#888] hover:text-[#eaeaea]'
-            }`}
-          >
-            {PLATFORM_LABEL[p]}
-            {platform === p && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-[2px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              />
-            )}
-          </button>
-        ))}
+        {/* buildTabDescriptors is the single source of truth for "does this
+            tab navigate or just set local state" — see its own doc comment
+            and src/lib/__tests__/calculator-tabs.test.ts. This component
+            only turns that decision into markup: a real <Link> (with
+            aria-current) when `href` is set, a state-setting <button>
+            otherwise. On a dedicated route this is real navigation, so the
+            current route's own content (metadata, H1, intro, "What's
+            included") can never end up paired with a different platform's
+            calculator underneath it — and Next's default scroll-to-top on
+            route change lands the user at the top of the new page for free. */}
+        {buildTabDescriptors(platform, routeLocked).map((tab) => {
+          const tabClassName = `px-5 py-3 text-sm font-medium transition-all relative whitespace-nowrap ${
+            tab.isActive ? 'text-white' : 'text-[#888] hover:text-[#eaeaea]'
+          }`;
+          const activeIndicator = tab.isActive && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 right-0 h-[2px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            />
+          );
+
+          if (tab.href !== null) {
+            return (
+              <Link key={tab.platform} href={tab.href} aria-current={tab.ariaCurrent} className={tabClassName}>
+                {tab.label}
+                {activeIndicator}
+              </Link>
+            );
+          }
+
+          return (
+            <button key={tab.platform} type="button" onClick={() => setPlatform(tab.platform)} className={tabClassName}>
+              {tab.label}
+              {activeIndicator}
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12">

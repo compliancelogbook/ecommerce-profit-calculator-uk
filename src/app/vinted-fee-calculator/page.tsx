@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
+import MarketplaceCalculatorLinks from '../../components/site/MarketplaceCalculatorLinks';
 import { pageMetadata } from '../../lib/seo';
 
 export const metadata: Metadata = pageMetadata({
@@ -21,7 +22,7 @@ export default function VintedFeeCalculatorPage() {
             from what you earn.
           </p>
         </header>
-        <CalculatorShell defaultPlatform="VINTED" />
+        <CalculatorShell defaultPlatform="VINTED" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">
@@ -45,6 +46,7 @@ export default function VintedFeeCalculatorPage() {
             figure was resolved.
           </p>
         </section>
+        <MarketplaceCalculatorLinks />
       </div>
     </div>
   );

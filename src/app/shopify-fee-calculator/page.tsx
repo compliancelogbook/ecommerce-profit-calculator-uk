@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
+import MarketplaceCalculatorLinks from '../../components/site/MarketplaceCalculatorLinks';
 import { pageMetadata } from '../../lib/seo';
 
 export const metadata: Metadata = pageMetadata({
@@ -20,7 +21,7 @@ export default function ShopifyFeeCalculatorPage() {
             international/Amex card surcharge and per-order subscription allocation.
           </p>
         </header>
-        <CalculatorShell defaultPlatform="SHOPIFY" />
+        <CalculatorShell defaultPlatform="SHOPIFY" routeLocked />
         <section className="w-full mt-12 text-sm text-[#888] leading-relaxed space-y-3">
           <h2 className="text-[#eaeaea] font-semibold text-lg">What&apos;s included</h2>
           <ul className="list-disc list-inside space-y-1">
@@ -36,6 +37,7 @@ export default function ShopifyFeeCalculatorPage() {
             on 16 August 2026. See <a href="/methodology" className="underline hover:text-[#eaeaea]">methodology</a> for full sourcing.
           </p>
         </section>
+        <MarketplaceCalculatorLinks />
       </div>
     </div>
   );
