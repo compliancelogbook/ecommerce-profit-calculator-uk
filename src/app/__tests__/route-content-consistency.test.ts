@@ -143,3 +143,49 @@ describe('RootLayout — scroll-behavior/navigation coordination', () => {
     expect(globalsCss).toMatch(/scroll-behavior:\s*smooth/);
   });
 });
+
+describe('RootLayout — permanently dark theme / mobile first-paint', () => {
+  // Regression coverage for a confirmed live-site defect: globals.css's
+  // :root defaulted to a WHITE background (#ffffff), correct only once the
+  // dark override inside `@media (prefers-color-scheme: dark)` had loaded —
+  // so a mobile visitor in light mode could see a blank white canvas before
+  // the external stylesheet arrived, on a site that has no light theme at
+  // all. Fixed by making :root permanently dark (no light default, no
+  // media-query override needed) and by giving the server-rendered HTML
+  // itself inline critical-first-paint colours, so the very first bytes the
+  // browser paints are already black — it never has to wait for Tailwind's
+  // stylesheet to find out the page is dark.
+  //
+  // Like the scroll-behavior test above, layout.tsx can't be imported
+  // directly here (next/font/google's Geist()/Geist_Mono() only resolve
+  // inside Next's own build), so this reads both files' source text
+  // directly rather than rendering anything.
+  const layoutSource = readFileSync(join(__dirname, '../layout.tsx'), 'utf8');
+  const globalsCss = readFileSync(join(__dirname, '../globals.css'), 'utf8');
+
+  it('layout.tsx carries the inline critical-first-paint background (#000000) and foreground (#eaeaea)', () => {
+    expect(layoutSource).toMatch(/style=\{\{\s*backgroundColor:\s*["']#000000["'],\s*color:\s*["']#eaeaea["']\s*\}\}/);
+  });
+
+  it('exports viewport.themeColor as "#000000"', () => {
+    expect(layoutSource).toMatch(/export const viewport:\s*Viewport\s*=\s*\{[\s\S]*?themeColor:\s*["']#000000["']/);
+  });
+
+  it('exports viewport.colorScheme as "dark"', () => {
+    expect(layoutSource).toMatch(/export const viewport:\s*Viewport\s*=\s*\{[\s\S]*?colorScheme:\s*["']dark["']/);
+  });
+
+  it('globals.css defines a permanently dark :root — #000000 background, #eaeaea foreground, color-scheme: dark', () => {
+    expect(globalsCss).toMatch(/:root\s*\{[^}]*--background:\s*#000000/);
+    expect(globalsCss).toMatch(/:root\s*\{[^}]*--foreground:\s*#eaeaea/);
+    expect(globalsCss).toMatch(/:root\s*\{[^}]*color-scheme:\s*dark/);
+  });
+
+  it('no white root-background declaration remains anywhere in globals.css (the exact defect this fix corrects)', () => {
+    expect(globalsCss).not.toMatch(/--background:\s*#fff(?:fff)?\b/i);
+    // The old light default was only ever overridden inside this media
+    // query — its removal is what made :root permanently dark instead of
+    // dark-only-after-the-override-loads.
+    expect(globalsCss).not.toMatch(/prefers-color-scheme:\s*dark/);
+  });
+});

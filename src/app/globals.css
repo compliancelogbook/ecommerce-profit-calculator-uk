@@ -5,16 +5,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* EasyFeezy is permanently dark — there is no light theme to switch to, so
+   this is a fixed root palette, not a light default awaiting a
+   system-preference-conditional override. The prior version had exactly
+   that bug: :root defaulted to a WHITE background (#ffffff), correct only
+   once a later, conditionally-applied dark rule had loaded — a mobile
+   visitor whose system was set to light mode could see that white default
+   rendered before the external stylesheet (and therefore that conditional
+   rule) took effect, i.e. a blank white flash on a site that is never
+   actually light. color-scheme: dark also tells the browser's own UI (form
+   controls, scrollbars) to render dark by default, instead of assuming
+   light and needing a later correction. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #eaeaea;
 }
 
 html {

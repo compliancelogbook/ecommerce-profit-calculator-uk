@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import SiteHeader from "../components/site/SiteHeader";
@@ -44,6 +44,15 @@ export const metadata: Metadata = {
   },
 };
 
+// EasyFeezy has no light theme — colorScheme: "dark" tells the browser to
+// render its own UI (scrollbars, form controls, the mobile status bar via
+// theme-color) dark from the very first paint, rather than assuming light
+// until globals.css's `color-scheme: dark` is parsed.
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#000000",
+};
+
 // Explicit ReactNode typing rather than the Next.js-generated `LayoutProps<"/">`
 // global — that type only exists after `next build`/`next dev` has run once
 // and produced `.next/types/`. On a genuinely fresh clone, `npx tsc --noEmit`
@@ -71,8 +80,17 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       // guidance, not as a fix for that bug.
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // Server-rendered critical-first-paint fallback: this inline style is
+      // present in the initial HTML response itself, so the browser paints
+      // black immediately, before Tailwind's external stylesheet (which
+      // supplies the equivalent bg-black/globals.css colours) has had a
+      // chance to load and apply. Without it, a mobile visitor could
+      // briefly see the browser's own unstyled-document default (white)
+      // during that gap. Kept in sync with globals.css's --background/
+      // --foreground rather than replacing it.
+      style={{ backgroundColor: "#000000", color: "#eaeaea" }}
     >
-      <body className="min-h-full flex flex-col bg-black">
+      <body className="min-h-full flex flex-col bg-black" style={{ backgroundColor: "#000000", color: "#eaeaea" }}>
         {/* Static, non-user-derived JSON built by buildOrganizationJsonLd — no HTML/script injection surface. */}
         <script
           type="application/ld+json"
