@@ -9,9 +9,10 @@ import EbayFeeCalculatorPage, { metadata as ebayMetadata } from '../ebay-fee-cal
 import AmazonFeeCalculatorPage, { metadata as amazonMetadata } from '../amazon-fee-calculator/page';
 import TikTokShopFeeCalculatorPage, { metadata as tiktokMetadata } from '../tiktok-shop-fee-calculator/page';
 import VintedFeeCalculatorPage, { metadata as vintedMetadata } from '../vinted-fee-calculator/page';
+import Link from 'next/link';
 import CalculatorShell from '../../components/calculator/CalculatorShell';
 import MarketplaceCalculatorLinks from '../../components/site/MarketplaceCalculatorLinks';
-import { PLATFORM_ROUTES, type Platform } from '../../lib/platform-routes';
+import { PLATFORM_LIST, PLATFORM_ROUTES, type Platform } from '../../lib/platform-routes';
 import { findAll, findFirst, textContentOf } from './react-tree-helpers';
 
 // Regression coverage for the /vinted-fee-calculator -> "select Shopify" bug:
@@ -39,25 +40,61 @@ const DEDICATED_PAGES: DedicatedPage[] = [
   { platform: 'VINTED', Page: VintedFeeCalculatorPage, metadata: vintedMetadata, expectedH1: 'Vinted UK Fee Calculator', brandFragment: 'Vinted' },
 ];
 
-describe('Homepage (/) — local-state switching only', () => {
+describe('Homepage (/) — static marketplace gateway (Stage 1 of the homepage-performance refactor)', () => {
+  // Real-device testing traced a prolonged blank white mobile load
+  // specifically to the homepage's own embedded <CalculatorShell/> — all
+  // six platform panels, calculation engines, validation logic, fee
+  // datasets and Framer Motion, statically imported into the one route
+  // every visitor lands on first. /privacy, which carries none of that,
+  // loaded immediately on the same phone/connection. The homepage is now a
+  // lightweight, server-rendered gateway: ordinary semantic links to each
+  // platform's own dedicated calculator route (which still embeds the full
+  // CalculatorShell, unchanged — see the per-platform tests below), no
+  // CalculatorShell import, no client-side state.
   const tree = Home();
+  const homeSource = readFileSync(join(__dirname, '../page.tsx'), 'utf8');
 
-  it('renders CalculatorShell WITHOUT routeLocked — switching platform must stay local state, never navigate', () => {
-    const shells = findAll(tree, CalculatorShell);
-    expect(shells).toHaveLength(1);
-    expect(shells[0].props.routeLocked).toBeFalsy();
+  it('does not import or render CalculatorShell', () => {
+    expect(findAll(tree, CalculatorShell)).toHaveLength(0);
+    expect(homeSource).not.toMatch(/CalculatorShell/);
+  });
+
+  it('is a Server Component — carries no "use client" directive', () => {
+    const trimmed = homeSource.trimStart();
+    expect(trimmed.startsWith('"use client"') || trimmed.startsWith("'use client'")).toBe(false);
   });
 
   it('renders the shared MarketplaceCalculatorLinks nav', () => {
     expect(findFirst(tree, MarketplaceCalculatorLinks)).toBeDefined();
   });
 
-  it('H1 is the fixed homepage headline, independent of any platform selection', () => {
+  it('H1 is the fixed homepage headline', () => {
     const h1 = findFirst(tree, 'h1');
     expect(textContentOf(h1)).toBe('Marketplace fees made easy.');
   });
 
-  it('canonical is / — switching the local calculator selection can never change the homepage URL', () => {
+  it('retains the primary supporting line beneath the H1', () => {
+    expect(textContentOf(tree)).toContain("Know what you'll actually make before you sell.");
+  });
+
+  it('shows a "Choose your marketplace" heading in place of the removed calculator', () => {
+    const h2 = findFirst(tree, 'h2');
+    expect(textContentOf(h2)).toBe('Choose your marketplace');
+  });
+
+  it('all six marketplace destinations are present with their exact dedicated routes', () => {
+    // MarketplaceCalculatorLinks is hook-free (no useState/usePathname/etc),
+    // so — like the page.tsx Server Components elsewhere in this file — it
+    // can be called directly to inspect the real <Link> elements it
+    // renders, rather than re-describing PLATFORM_ROUTES in prose here.
+    const linksTree = MarketplaceCalculatorLinks();
+    const hrefs = findAll(linksTree, Link).map((el) => el.props.href).sort();
+    const expectedHrefs = PLATFORM_LIST.map((p) => PLATFORM_ROUTES[p].path).sort();
+    expect(hrefs).toEqual(expectedHrefs);
+    expect(hrefs).toHaveLength(6);
+  });
+
+  it('canonical is /', () => {
     expect(homeMetadata.alternates?.canonical).toBe('/');
   });
 });

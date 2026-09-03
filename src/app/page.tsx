@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import CalculatorShell from '../components/calculator/CalculatorShell';
 import Link from 'next/link';
 import MarketplaceCalculatorLinks from '../components/site/MarketplaceCalculatorLinks';
 import { homeMetadata } from '../lib/seo';
@@ -36,8 +35,26 @@ export default function Home() {
           </p>
         </header>
 
-        <main className="w-full animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 fill-mode-both">
-          <CalculatorShell />
+        {/*
+          Stage 1 of a controlled homepage-performance refactor. The
+          homepage previously embedded the full interactive calculator
+          component directly — all six platform panels, calculation
+          engines, validation logic, fee datasets and Framer Motion —
+          which real-device testing traced as the cause of a prolonged
+          blank white load on mobile: /privacy, which carries none of
+          that, loaded immediately on the same phone/connection. This is a
+          lightweight, server-rendered marketplace gateway instead:
+          ordinary semantic links to each platform's own dedicated
+          calculator route (see MarketplaceCalculatorLinks, shared with
+          every dedicated route's own nav), no client-side state, and
+          nothing calculator-related imported into this file. The full
+          calculator still lives on each dedicated route, unchanged.
+        */}
+        <main className="w-full flex flex-col items-center">
+          <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight text-center">
+            Choose your marketplace
+          </h2>
+          <MarketplaceCalculatorLinks />
         </main>
 
         <p className="mt-6 text-sm text-[#666]">
@@ -48,9 +65,6 @@ export default function Home() {
             {OPTIONAL_HOME_ENTRY_COPY}
           </Link>
         </p>
-
-        {/* Immediately above the footer, matching every dedicated calculator route — see MarketplaceCalculatorLinks. */}
-        <MarketplaceCalculatorLinks />
       </div>
 
     </div>
