@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+export const dynamic = "force-static";
+
 const BASE_URL = 'https://easyfeezy.com';
 
 const ROUTES: { path: string; priority: number; changeFrequency: 'weekly' | 'monthly' }[] = [
